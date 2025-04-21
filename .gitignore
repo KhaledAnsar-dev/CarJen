@@ -1,0 +1,32 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Build results
+bin/
+obj/
+*.dll
+*.exe
+
+# Debug/Release folders
+[Dd]ebug/
+[Rr]elease/
+
+# Logs
+*.log
+
+# NuGet
+*.nupkg
+packages/
+
+# Other
+*.cache
+*.ide
+*.sdf
+*.dbmdl
+*.vscode/
+
+# OS generated files
+.DS_Store
+Thumbs.db
