@@ -13,77 +13,18 @@ namespace CarJenData.Repositories
 {
     public class UserRepository
     {
-        //public static UserDto? GetUserById(int userId)
-        //{
-        //    try
-        //    {
-        //        using (var context = new CarJenDbContext())
-        //        {
-        //            var user = context.Users
-        //                .Where(u => u.UserId == userId && u.Person != null && u.Role != null)
-        //                .Select(u => new UserDto
-        //                {
-        //                    UserId = u.UserId,
-        //                    NationalNumber = u.NationalNumber,
-        //                    EvaluationScore = u.EvaluationScore,
-        //                    CreatedByUserId = u.CreatedByUserId,
-        //                    Bonus = u.EvaluationScore >= 90 ? (float)u.Role.Salary * 0.15f :
-        //                            u.EvaluationScore >= 70 ? (float)u.Role.Salary * 0.10f :
-        //                            u.EvaluationScore >= 40 ? (float)u.Role.Salary * 0.05f :
-        //                            0,
-
-        //                    Person = new PersonDto
-        //                    {
-        //                        PersonID = u.Person.PersonId,
-        //                        FirstName = u.Person.FirstName,
-        //                        MiddleName = u.Person.MiddleName,
-        //                        LastName = u.Person.LastName,
-        //                        Gender = (short)u.Person.Gender,
-        //                        DateOfBirth = u.Person.DateOfBirth,
-        //                        Email = u.Person.Email,
-        //                        Phone = u.Person.Phone,
-        //                        Address = u.Person.Address,
-        //                        JoinDate = u.Person.JoinDate,
-        //                        IsActive = u.Person.IsActive,
-        //                        Image = u.Person.Image,
-        //                        UserName = u.Person.UserName,
-        //                        Password = u.Person.Password
-        //                    },
-
-
-        //                    Role = new RoleDto
-        //                    {
-        //                        roleID = (short)u.Role.RoleId,
-        //                        roleTitle = u.Role.RoleTitle,
-        //                        salary = (float)u.Role.Salary,
-        //                    }
-        //                })
-        //                .FirstOrDefault();
-
-        //            return user;
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        LogError(ex, nameof(GetUserById));
-        //        return null;
-        //    }
-        //}
-
         public static UserDto? GetUserById(int userId)
         {
             try
             {
                 using (var context = new CarJenDbContext())
                 {
-                    var user = context.Users
-                        .Where(u => u.UserId == userId && u.Person != null && u.Role != null)
-                        .Include (u => u.Person)
-                        .Include (u => u.Role)
-                        .Select(u => UserDataMapper.ToDto(u))
-                        .FirstOrDefault();
+                    var entity = context.Users
+                        .Include(u => u.Person)
+                        .Include(u => u.Role)
+                        .FirstOrDefault(u => u.UserId == userId && u.Person != null && u.Role != null);
 
-                    return user;
+                    return entity != null ? UserDataMapper.ToDto(entity) : null;
                 }
             }
             catch (Exception ex)
@@ -98,14 +39,12 @@ namespace CarJenData.Repositories
             {
                 using (var context = new CarJenDbContext())
                 {
-                    var user = context.Users
-                        .Where(u => u.NationalNumber == nationalNumber && u.Person != null && u.Role != null)
-                        .Include(u => u.Person)
-                        .Include(u => u.Role)
-                        .Select(u => UserDataMapper.ToDto(u))
-                        .FirstOrDefault();
+                    var entity = context.Users
+                       .Include(u => u.Person)
+                       .Include(u => u.Role)
+                       .FirstOrDefault(u => u.NationalNumber == nationalNumber && u.Person != null && u.Role != null);
 
-                    return user;
+                    return entity != null ? UserDataMapper.ToDto(entity) : null;
                 }
             }
             catch (Exception ex)
@@ -211,11 +150,34 @@ namespace CarJenData.Repositories
             {
                 using (var context = new CarJenDbContext())
                 {
+                    // ✅ Direct projection: Fastest and most efficient for listing users
+                    // Only required fields are selected, no need for Include()
+                    // Reduces memory usage and generates optimized SQL
+
                     return context.Users
-                        .Include(u => u.Person)
-                        .Include(u => u.Role)
                         .Where(u => u.Person != null && u.Role != null)
-                        .Select(u => UserDataMapper.ToDto(u))
+                        .Select(u => new UserDto
+                        {
+                            UserId = u.UserId,
+                            Role = new RoleDto
+                            {
+                                roleTitle = u.Role.RoleTitle
+                            },
+                            NationalNumber = u.NationalNumber,
+
+                            Person = new PersonDto
+                            {
+                                Phone = u.Person.Phone,
+                                FirstName = u.Person.FirstName,
+                                MiddleName = u.Person.MiddleName ?? "",
+                                LastName = u.Person.LastName
+                            },
+                            EvaluationScore = u.EvaluationScore,
+                            Bonus = u.EvaluationScore >= 90 ? Convert.ToSingle(u.Role.Salary * 0.15m) :
+                                    u.EvaluationScore >= 70 ? Convert.ToSingle(u.Role.Salary * 0.10m) :
+                                    u.EvaluationScore >= 40 ? Convert.ToSingle(u.Role.Salary * 0.05m) :
+                                    0
+                        })
                         .ToList();
 
                 }

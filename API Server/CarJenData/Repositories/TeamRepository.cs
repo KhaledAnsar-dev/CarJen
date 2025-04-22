@@ -19,13 +19,20 @@ namespace CarJenData.Repositories
                 {
                     return context.Teams
                         .Where(t => t.TeamId == teamID)
-                        .Select(t => TeamDataMapper.ToDto(t))
+                        .Select(t => new TeamDto
+                        {
+                            TeamID = t.TeamId,
+                            TeamCode = t.TeamCode,
+                            TeamType = t.TeamType,
+                            CreatedByUserID = t.CreatedByUserId,
+                            CreatedDate = t.CreatedDate
+                        })
                         .FirstOrDefault();
                 }
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex , "GetTeamByID");
+                Logger.LogError(ex, "GetTeamByID");
                 return null;
             }
 
@@ -38,7 +45,14 @@ namespace CarJenData.Repositories
                 {
                     return context.Teams
                         .Where(t => t.TeamCode == teamCode)
-                        .Select(t => TeamDataMapper.ToDto(t))
+                        .Select(t => new TeamDto
+                        {
+                            TeamID = t.TeamId,
+                            TeamCode = t.TeamCode,
+                            TeamType = t.TeamType,
+                            CreatedByUserID = t.CreatedByUserId,
+                            CreatedDate = t.CreatedDate
+                        })
                         .FirstOrDefault();
                 }
             }
