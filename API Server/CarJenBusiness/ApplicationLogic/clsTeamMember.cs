@@ -1,4 +1,6 @@
-﻿using CarJenData.Repositories;
+﻿using CarJenData.DataModels;
+using CarJenData.Repositories;
+using CarJenShared.Dtos.MemberDtos;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -21,16 +23,30 @@ namespace CarJenBusiness.ApplicationLogic
         public DateTime? JoinDate { get; set; }
         public DateTime? ExitDate { get; set; }
 
-
-        private clsTeamMember(int? TeamMemberID, int? TeamID, int? UserID, DateTime? JoinDate, DateTime? ExitDate)
+        public MemberDto ToMemberDto
         {
-            this.TeamMemberID = TeamMemberID;
-            this.TeamID = TeamID;
-            this.UserID = UserID;
-            this.JoinDate = JoinDate;
-            this.ExitDate = ExitDate;
-            this.Team = clsTeam.Find(TeamID);
-            this.User = clsUser.Find(UserID);
+            get
+            {
+                return new MemberDto
+                {
+                    TeamMemberId = (int)this.TeamMemberID,
+                    JoinDate = Convert.ToDateTime(this.JoinDate),
+                    ExitDate = this.ExitDate,
+                    Team = this.Team.toTeamDto,
+                    User = this.User.toUserDto
+                };
+            }
+        }
+
+        private clsTeamMember(MemberDto memberDto)
+        {
+            this.TeamMemberID = memberDto.TeamMemberId;
+            this.TeamID = memberDto.Team.TeamID;
+            this.UserID = memberDto.User.UserId;
+            this.JoinDate = memberDto.JoinDate;
+            this.ExitDate = memberDto.ExitDate;
+            this.Team = clsTeam.Find(memberDto.Team.TeamID);
+            this.User = clsUser.Find(memberDto.User.UserId);
 
             Mode = enMode.Update;
         }
@@ -50,7 +66,7 @@ namespace CarJenBusiness.ApplicationLogic
             this.TeamMemberID = TeamMemberRepository.AddTeamMember(TeamID, UserID);
             return this.TeamMemberID != null;
         }
-        private static bool _ReplaceMmeber(int? NewUserID, int? OldUserID)
+        private static bool? _ReplaceMmeber(int? NewUserID, int? OldUserID)
         {
             return TeamMemberRepository.ReplaceMember(NewUserID, OldUserID);
         }
@@ -66,10 +82,11 @@ namespace CarJenBusiness.ApplicationLogic
             else
                 return false;
         }
-        public bool ReplaceMember(int? OldUserID)
+        public bool? ReplaceMember(int? newUserID)
         {
-            if (this.UserID != OldUserID)
-                return _ReplaceMmeber(this.UserID, OldUserID);
+            //this.UserID define the current user as team memeber
+            if (this.UserID != newUserID)
+                return _ReplaceMmeber(newUserID, this.UserID);
             else
                 return false;
         }
@@ -83,35 +100,47 @@ namespace CarJenBusiness.ApplicationLogic
             return TeamMemberRepository.ExitTeam(TeamMemberID);
         }
 
-        static public clsTeamMember Find(int? TeamMemberID)
+        static public clsTeamMember? Find(int? TeamMemberID)
         {
-            int? TeamID = null; int? UserID = null; DateTime? JoinDate = null; DateTime? ExitDate = null;
 
-            if (TeamMemberRepository.GetTeamMemberByID(TeamMemberID, ref TeamID, ref UserID, ref JoinDate, ref ExitDate))
-                return new clsTeamMember(TeamMemberID, TeamID, UserID, JoinDate, ExitDate);
-            else
+            var memberDto = TeamMemberRepository.GetTeamMemberByID(TeamMemberID);
+            
+            if(memberDto == null)
                 return null;
+
+            return new clsTeamMember(memberDto);
+
         }
-        static public DataTable GetAllMembers()
+        static public List<MemberDto> GetAllMembers()
         {
             return TeamMemberRepository.GetAllTeamMembers();
         }
 
         // Team members business logic
-        public static bool IsUserMember(int? UserID)
+        public static bool? IsUserMember(int? UserID)
         {
             return TeamMemberRepository.IsUserMember(UserID);
         }
-
-        private static short? _GetTeamRoleMemberCount(int? TeamID, short? RoleID)
+        private static int? _GetTeamRoleMemberCount(int? TeamID, short? RoleID)
         {
             return TeamMemberRepository.GetTeamRoleMemberCount(TeamID, RoleID);
         }
-        public static bool IsRoleCapacityReached(int? TeamID, short? RoleID, short MaxRoleLimit = 1)
+        public static bool? IsRoleCapacityReached(int? TeamID, short? RoleID, short MaxRoleLimit = 1)
         {
-            short? CurrentRoleMemberCount = _GetTeamRoleMemberCount(TeamID, RoleID);
 
-            return CurrentRoleMemberCount == MaxRoleLimit;
+         
+            int? CurrentRoleMemberCount = _GetTeamRoleMemberCount(TeamID, RoleID);
+
+            // This code will changed later
+            short maxRoleLimit = 1;
+            if (RoleID == 5)
+                maxRoleLimit = 2;
+
+
+            if (CurrentRoleMemberCount.HasValue)
+                return CurrentRoleMemberCount == maxRoleLimit;
+
+            return null;
         }
 
     }

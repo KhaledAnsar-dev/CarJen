@@ -1,245 +1,238 @@
 ﻿using CarJenData.DataModels;
+using CarJenData.Mappings;
+using CarJenShared.Dtos.MemberDtos;
+using CarJenShared.Dtos.PersonDtos;
+using CarJenShared.Dtos.TeamDtos;
+using CarJenShared.Dtos.UserDtos;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Data;
 using System.Reflection;
+using static CarJenShared.Helpers.Logger;
 
 namespace CarJenData.Repositories
 {
     public class TeamMemberRepository
     {
-        public static bool GetTeamMemberByID(int? teamMemberID, ref int? teamID, ref int? userID, ref DateTime? joinDate, ref DateTime? exitDate)
+        public static MemberDto? GetTeamMemberByID(int? teamMemberId)
         {
-            bool isFound = false;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("SP_GetTeamMemberByID", connection))
+                using (var context = new CarJenDbContext())
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@TeamMemberID", teamMemberID);
-                    connection.Open();
-
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        if (reader.Read())
+                    return context.TeamMembers
+                        .Where(tm => tm.TeamMemberId == teamMemberId)
+                        .Select(tm => new MemberDto
                         {
-                            isFound = true;
-                            teamID = Convert.ToInt32(reader["TeamID"]);
-                            userID = Convert.ToInt32(reader["UserID"]);
-                            joinDate = Convert.ToDateTime(reader["JoinDate"]);
-                            exitDate = reader["ExitDate"] != DBNull.Value ? Convert.ToDateTime(reader["ExitDate"]) : null;
-                        }
-                    }
+                            TeamMemberId = tm.TeamMemberId,
+                            JoinDate = tm.JoinDate,
+                            ExitDate = tm.ExitDate,
+
+                            Team = new TeamDto
+                            {
+                                TeamID = tm.TeamId,
+                                TeamType = tm.Team.TeamType
+                            },
+
+                            User = new UserDto
+                            {
+                                UserId = tm.UserId,
+                                Role = new CarJenShared.Dtos.RoleDtos.RoleDto
+                                {
+                                    roleTitle = tm.User.Role.RoleTitle
+                                },
+                                Person = new PersonDto
+                                {
+                                    FirstName = tm.User.Person.FirstName,
+                                    MiddleName = tm.User.Person.LastName,
+                                    LastName = tm.User.Person.LastName
+                                }
+                            }
+                        })
+                        .FirstOrDefault();
+
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetTeamMemberByID));
+                return null;
             }
-
-            return isFound;
         }
-
-        public static int? AddTeamMember(int? teamID, int? userID)
+        public static int? AddTeamMember(int? teamId, int? userId)
         {
-            int? createdID = null;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("SP_AddTeamMember", connection))
+                using (var context = new CarJenDbContext())
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-
-                    command.Parameters.AddWithValue("@TeamID", teamID);
-                    command.Parameters.AddWithValue("@UserID", userID);
-                    command.Parameters.AddWithValue("@JoinDate", DateTime.Now);
-                    command.Parameters.AddWithValue("@ExitDate", DBNull.Value);
-
-                    SqlParameter outputID = new SqlParameter("@TeamMemberID", SqlDbType.Int)
+                    var entity = new TeamMember
                     {
-                        Direction = ParameterDirection.Output
+                        TeamId = (int)teamId,
+                        UserId = (int)userId,
+                        JoinDate = DateTime.Now,
+                        ExitDate = null
                     };
-                    command.Parameters.Add(outputID);
 
-                    connection.Open();
-                    command.ExecuteNonQuery();
-                    createdID = (int)command.Parameters["@TeamMemberID"].Value;
+                    context.TeamMembers.Add(entity);
+                    context.SaveChanges();
+
+                    return entity.TeamMemberId;
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(AddTeamMember));
+                return null;
             }
-
-            return createdID;
         }
-
-        public static bool ReplaceMember(int? newUserID, int? oldUserID)
+        public static bool DeleteTeamMember(int teamMemberId)
         {
-            int rowAffected = 0;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("SP_ReplaceMember", connection))
+                using (var context = new CarJenDbContext())
                 {
-                    command.CommandType = CommandType.StoredProcedure;
+                    var entity = context.TeamMembers.Find(teamMemberId);
 
-                    command.Parameters.AddWithValue("@NewUserID", newUserID);
-                    command.Parameters.AddWithValue("@OldUserID", oldUserID);
-                    command.Parameters.AddWithValue("@JoinDate", DateTime.Now);
+                    if (entity == null)
+                        return false;
 
-                    connection.Open();
-                    rowAffected = command.ExecuteNonQuery();
+                    context.TeamMembers.Remove(entity);
+                    context.SaveChanges();
+                    return true;
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(DeleteTeamMember));
+                return false;
             }
-
-            return rowAffected > 0;
         }
-
-        public static bool DeleteTeamMember(int teamMemberID)
+        public static List<MemberDto> GetAllTeamMembers()
         {
-            int rowAffected = 0;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("SP_DeleteTeamMember", connection))
+                using (var context = new CarJenDbContext())
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@TeamMemberID", teamMemberID);
+                    // ✅ Direct projection: generates optimized SQL, ideal for large datasets.
+                    // Avoids Include overhead and loads only needed fields.
 
-                    connection.Open();
-                    rowAffected = command.ExecuteNonQuery();
+                    return context.TeamMembers
+                        .Select(tm => new MemberDto
+                        {
+                            TeamMemberId = tm.TeamMemberId,
+                            JoinDate = tm.JoinDate,
+                            ExitDate = tm.ExitDate,
+
+                            Team = new TeamDto
+                            {
+                                TeamID = tm.TeamId,
+                                TeamType = tm.Team.TeamType
+                            },
+
+                            User = new UserDto
+                            {
+                                Person = new PersonDto
+                                {
+                                    FirstName = tm.User.Person.FirstName,
+                                    MiddleName = tm.User.Person.LastName,
+                                    LastName = tm.User.Person.LastName
+                                },
+                                Role = new CarJenShared.Dtos.RoleDtos.RoleDto
+                                {
+                                    roleTitle = tm.User.Role.RoleTitle
+                                }
+                            }
+                        })
+                        .ToList();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetAllTeamMembers));
+                return new List<MemberDto>();
             }
-
-            return rowAffected > 0;
         }
-
         public static bool ExitTeam(int teamMemberID)
         {
-            int rowAffected = 0;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("SP_ExitTeam", connection))
+                using (var context = new CarJenDbContext())
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@TeamMemberID", teamMemberID);
-                    command.Parameters.AddWithValue("@ExitDate", DateTime.Now);
+                    var teamMember = context.TeamMembers.Find(teamMemberID);
 
-                    connection.Open();
-                    rowAffected = command.ExecuteNonQuery();
+                    if (teamMember == null) return false;
+
+                    teamMember.ExitDate = DateTime.Now;
+                    context.SaveChanges();
+                    return true;
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(ExitTeam));
+                return false;
             }
-
-            return rowAffected > 0;
         }
-
-        public static DataTable GetAllTeamMembers()
+        public static bool? IsUserMember(int? userID)
         {
-            DataTable dt = new DataTable();
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("SP_GetAllTeamMemebers", connection))
+                using (var context = new CarJenDbContext())
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    connection.Open();
-
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        if (reader.HasRows)
-                            dt.Load(reader);
-                    }
+                    return context.TeamMembers
+                        .Any(tm => tm.UserId == userID && tm.ExitDate == null);
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(IsUserMember));
+                return null;
             }
-
-            return dt;
         }
-
-        public static bool IsUserMember(int? userID)
+        public static bool? ReplaceMember(int? newUserID, int? oldUserID)
         {
-            bool isFound = false;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("SP_IsUserMember", connection))
+                using (var context = new CarJenDbContext())
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@UserID", userID);
-                    connection.Open();
+                    var teamMember = context.TeamMembers
+                        .FirstOrDefault(tm => tm.UserId == oldUserID && tm.ExitDate == null);
 
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        isFound = reader.HasRows;
-                    }
+                    if (teamMember == null) return null;
+
+                    teamMember.UserId = (int)newUserID;
+                    teamMember.JoinDate = DateTime.Now;
+                    context.SaveChanges();
+
+                    return true;
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(ReplaceMember));
+                return null;
             }
-
-            return isFound;
         }
-
-        public static short? GetTeamRoleMemberCount(int? teamID, short? roleID)
+        public static int? GetTeamRoleMemberCount(int? teamID, short? roleID)
         {
-            short? count = null;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("SP_GetTeamRoleMemberCount", connection))
+                using (var context = new CarJenDbContext())
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@TeamID", teamID);
-                    command.Parameters.AddWithValue("@RoleID", roleID);
-                    connection.Open();
-
-                    object result = command.ExecuteScalar();
-                    if (result != null && short.TryParse(result.ToString(), out short number))
-                        count = number;
+                    var count = context.TeamMembers.
+                        Include(tm => tm.User)
+                        .Where(tm => tm.TeamId == teamID && tm.User.RoleId == roleID && tm.ExitDate == null)
+                        .Count();
+                    return count;
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetTeamRoleMemberCount));
+                return null;
             }
 
-            return count;
         }
     }
 }
