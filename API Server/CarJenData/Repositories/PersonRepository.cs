@@ -91,16 +91,16 @@ namespace CarJenData.Repositories
 
                     personEnrtity.PersonId = Convert.ToInt32(personDto.PersonID);
                     personEnrtity.FirstName = personDto.FirstName;
-                    personEnrtity.MiddleName = personDto.MiddleName;
+                    //personEnrtity.MiddleName = personDto.MiddleName;
                     personEnrtity.LastName = personDto.LastName;
                     personEnrtity.Gender = Convert.ToByte(personDto.Gender);
-                    personEnrtity.DateOfBirth = Convert.ToDateTime(personDto.DateOfBirth);
-                    personEnrtity.Email = personDto.Email;
-                    personEnrtity.Address = personDto.Address;
+                    //personEnrtity.DateOfBirth = Convert.ToDateTime(personDto.DateOfBirth);
+                    //personEnrtity.Email = personDto.Email;
+                    //personEnrtity.Address = personDto.Address;
                     personEnrtity.Phone = personDto.Phone;
-                    personEnrtity.JoinDate = Convert.ToDateTime(personDto.JoinDate);
-                    personEnrtity.IsActive = personDto.IsActive;
-                    personEnrtity.Image = personDto.Image;
+                    //personEnrtity.JoinDate = Convert.ToDateTime(personDto.JoinDate);
+                    //personEnrtity.IsActive = personDto.IsActive;
+                    //personEnrtity.Image = personDto.Image;
 
                     context.SaveChanges();
                     return true;

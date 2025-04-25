@@ -1,333 +1,237 @@
 ﻿using CarJenData.DataModels;
+using CarJenShared.Dtos.PersonDtos;
+using CarJenShared.Dtos.SellerDtos;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Data;
-using System.Reflection;
-
+using static CarJenShared.Helpers.Logger;
 namespace CarJenData.Repositories
 {
     public class SellerRepository
     {
-        public static bool GetSellerByID(int? sellerID, ref int? personID,
-            ref string firstName, ref string middleName, ref string lastName,
-            ref short gender, ref DateTime? dateOfBirth, ref string email, ref string phone,
-            ref string address, ref DateTime? joinDate, ref bool isActive, ref string image,
-            ref string userName, ref string password, ref string nationalNumber, ref decimal? earnings)
+        public static SellerDto? GetSellerByID(int? sellerID)
         {
-            bool isFound = false;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("SP_GetSellerByID", connection))
+                using (var context = new CarJenDbContext())
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@SellerID", sellerID);
-                    connection.Open();
-
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        if (reader.Read())
+                    return context.Sellers
+                        .Where(s => s.SellerId == sellerID)
+                        .Select(s => new SellerDto
                         {
-                            isFound = true;
-                            nationalNumber = reader["NationalNumber"].ToString();
-                            earnings = Convert.ToDecimal(reader["Earnings"]);
-                            personID = Convert.ToInt32(reader["PersonID"]);
-                            firstName = reader["FirstName"].ToString();
-                            middleName = reader["MiddleName"] as string ?? "";
-                            lastName = reader["LastName"].ToString();
-                            gender = Convert.ToInt16(reader["Gender"]);
-                            dateOfBirth = Convert.ToDateTime(reader["DateOfBirth"]);
-                            email = reader["Email"] as string ?? "";
-                            phone = reader["Phone"].ToString();
-                            address = reader["Address"].ToString();
-                            joinDate = Convert.ToDateTime(reader["JoinDate"]);
-                            isActive = Convert.ToBoolean(reader["IsActive"]);
-                            image = reader["Image"] as string ?? "";
-                            userName = reader["UserName"].ToString();
-                            password = reader["Password"].ToString();
-                        }
-                    }
+                            SellerId = s.SellerId,
+                            NationalNumber = s.NationalNumber,
+                            Earnings = s.Earnings,
+                            Person = new PersonDto
+                            {
+                                PersonID = s.PersonId,
+                                FirstName = s.Person.FirstName,
+                                MiddleName = s.Person.MiddleName,
+                                LastName = s.Person.LastName,
+                                Gender = (short)s.Person.Gender,
+                                Phone = s.Person.Phone
+                            }
+                        })
+                        .FirstOrDefault();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetSellerByID));
+                return null;
             }
-
-            return isFound;
         }
-
-        public static bool GetSellerByNO(string nationalNumber, ref int? sellerID, ref int? personID,
-            ref string firstName, ref string middleName, ref string lastName,
-            ref short gender, ref DateTime? dateOfBirth, ref string email, ref string phone,
-            ref string address, ref DateTime? joinDate, ref bool isActive, ref string image,
-            ref string userName, ref string password, ref decimal? earnings)
+        public static SellerDto? GetSellerByNO(string nationalNumber)
         {
-            bool isFound = false;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("SP_GetSellerByNO", connection))
+                using (var context = new CarJenDbContext())
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@NationalNumber", nationalNumber);
-                    connection.Open();
-
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        if (reader.Read())
+                    return context.Sellers
+                        .Where(s => s.NationalNumber == nationalNumber)
+                        .Select(s => new SellerDto
                         {
-                            isFound = true;
-                            sellerID = Convert.ToInt32(reader["SellerID"]);
-                            earnings = Convert.ToDecimal(reader["Earnings"]);
-                            personID = Convert.ToInt32(reader["PersonID"]);
-                            firstName = reader["FirstName"].ToString();
-                            middleName = reader["MiddleName"] as string ?? "";
-                            lastName = reader["LastName"].ToString();
-                            gender = Convert.ToInt16(reader["Gender"]);
-                            dateOfBirth = Convert.ToDateTime(reader["DateOfBirth"]);
-                            email = reader["Email"] as string ?? "";
-                            phone = reader["Phone"].ToString();
-                            address = reader["Address"].ToString();
-                            joinDate = Convert.ToDateTime(reader["JoinDate"]);
-                            isActive = Convert.ToBoolean(reader["IsActive"]);
-                            image = reader["Image"] as string ?? "";
-                            userName = reader["UserName"].ToString();
-                            password = reader["Password"].ToString();
-                        }
-                    }
+                            SellerId = s.SellerId,
+                            NationalNumber = s.NationalNumber,
+                            Earnings = s.Earnings,
+                            Person = new PersonDto
+                            {
+                                FirstName = s.Person.FirstName,
+                                MiddleName = s.Person.MiddleName,
+                                LastName = s.Person.LastName,
+                                Gender = (short)s.Person.Gender,
+                                Phone = s.Person.Phone
+                            }
+                        })
+                        .FirstOrDefault();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetSellerByNO));
+                return null;
             }
-
-            return isFound;
         }
-
-        public static bool GetSellerByCredentials(ref int? sellerID, ref int? personID,
-            ref string firstName, ref string middleName, ref string lastName,
-            ref short gender, ref DateTime? dateOfBirth, ref string email, ref string phone,
-            ref string address, ref DateTime? joinDate, ref bool isActive, ref string image,
-            string userName, string password, ref string nationalNumber,
-            ref decimal? earnings)
+        public static SellerDto? GetSellerByCredentials(string userName, string password)
         {
-            bool isFound = false;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("GetSellerByCredentials", connection))
+                using (var context = new CarJenDbContext())
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@UserName", userName);
-                    command.Parameters.AddWithValue("@Password", password);
-                    connection.Open();
-
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        if (reader.Read())
+                    return context.Sellers
+                        .Where(s => s.Person.UserName == userName && s.Person.Password == password)
+                        .Select(s => new SellerDto
                         {
-                            isFound = true;
-                            sellerID = Convert.ToInt32(reader["SellerID"]);
-                            nationalNumber = reader["NationalNumber"].ToString();
-                            earnings = Convert.ToDecimal(reader["Earnings"]);
-                            personID = Convert.ToInt32(reader["PersonID"]);
-                            firstName = reader["FirstName"].ToString();
-                            middleName = reader["MiddleName"] as string ?? "";
-                            lastName = reader["LastName"].ToString();
-                            gender = Convert.ToInt16(reader["Gender"]);
-                            dateOfBirth = Convert.ToDateTime(reader["DateOfBirth"]);
-                            email = reader["Email"] as string ?? "";
-                            phone = reader["Phone"].ToString();
-                            address = reader["Address"].ToString();
-                            joinDate = Convert.ToDateTime(reader["JoinDate"]);
-                            isActive = Convert.ToBoolean(reader["IsActive"]);
-                            image = reader["Image"] as string ?? "";
-                        }
-                    }
+                            SellerId = s.SellerId,
+                            NationalNumber = s.NationalNumber,
+                            Earnings = s.Earnings,
+                            Person = new PersonDto
+                            {
+                                FirstName = s.Person.FirstName,
+                                MiddleName = s.Person.MiddleName,
+                                LastName = s.Person.LastName,
+                                Gender = (short)s.Person.Gender,
+                                Phone = s.Person.Phone
+                            }
+                        })
+                        .FirstOrDefault();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetSellerByCredentials));
+                return null;
             }
-
-            return isFound;
         }
-
-        public static int? AddSeller(int? personID, string nationalNumber)
+        public static List<SellerDto> GetAllSellers()
         {
-            int? createdID = null;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("SP_AddNewSeller", connection))
+                using (var context = new CarJenDbContext())
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@PersonID", personID);
-                    command.Parameters.AddWithValue("@NationalNumber", nationalNumber);
-                    command.Parameters.AddWithValue("@Earnings", 0);
-
-                    SqlParameter outputID = new SqlParameter("@SellerID", SqlDbType.Int)
-                    {
-                        Direction = ParameterDirection.Output,
-                    };
-                    command.Parameters.Add(outputID);
-
-                    connection.Open();
-                    command.ExecuteNonQuery();
-                    createdID = (int)command.Parameters["@SellerID"].Value;
+                    return context.Sellers
+                        .Select(s => new SellerDto
+                        {
+                            SellerId = s.SellerId,
+                            NationalNumber = s.NationalNumber,
+                            Earnings = s.Earnings,
+                            Person = new PersonDto
+                            {
+                                FirstName = s.Person.FirstName,
+                                MiddleName = s.Person.MiddleName,
+                                LastName = s.Person.LastName,
+                                Gender = (short)s.Person.Gender,
+                                Phone = s.Person.Phone
+                            }
+                        })
+                        .ToList();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetAllSellers));
+                return new List<SellerDto>();
             }
-
-            return createdID;
         }
-
-        public static bool UpdateSeller(int? sellerID, string nationalNumber)
-        {
-            int rowAffected = 0;
-
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("SP_UpdateSeller", connection))
-                {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@SellerID", sellerID);
-                    command.Parameters.AddWithValue("@NationalNumber", nationalNumber);
-
-                    connection.Open();
-                    rowAffected = command.ExecuteNonQuery();
-                }
-            }
-            catch (Exception ex)
-            {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
-            }
-
-            return rowAffected > 0;
-        }
-
-        public static bool DeleteSeller(int sellerID)
-        {
-            int rowAffected = 0;
-
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("SP_DeleteSeller", connection))
-                {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@SellerID", sellerID);
-                    connection.Open();
-                    rowAffected = command.ExecuteNonQuery();
-                }
-            }
-            catch (Exception ex)
-            {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
-            }
-
-            return rowAffected > 0;
-        }
-
-        public static DataTable GetAllSellers()
-        {
-            DataTable dt = new DataTable();
-
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("SP_GetAllSellers", connection))
-                {
-                    command.CommandType = CommandType.StoredProcedure;
-                    connection.Open();
-
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        if (reader.HasRows)
-                            dt.Load(reader);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
-            }
-
-            return dt;
-        }
-
         public static bool IsSellerExist(int sellerID)
         {
-            bool isFound = false;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("SP_IsSellerExist", connection))
+                using (var context = new CarJenDbContext())
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@SellerID", sellerID);
-                    connection.Open();
-
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        isFound = reader.HasRows;
-                    }
+                    return context.Sellers.Any(s => s.SellerId == sellerID);
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(IsSellerExist));
+                return false;
             }
-
-            return isFound;
         }
-
         public static bool IsSellerExist(string nationalNumber)
         {
-            bool isFound = false;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("SP_IsSellerExistNo", connection))
+                using (var context = new CarJenDbContext())
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@NationalNumber", nationalNumber);
-                    connection.Open();
-
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        isFound = reader.HasRows;
-                    }
+                    return context.Sellers.Any(s => s.NationalNumber == nationalNumber);
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(IsSellerExist));
+                return false;
             }
-
-            return isFound;
         }
+        public static int? AddSeller(int? personID, string nationalNumber)
+        {
+            try
+            {
+                using (var context = new CarJenDbContext())
+                {
+                    var seller = new Seller
+                    {
+                        PersonId = personID ?? 0,
+                        NationalNumber = nationalNumber,
+                        Earnings = 0
+                    };
+
+                    context.Sellers.Add(seller);
+                    context.SaveChanges();
+
+                    return seller.SellerId;
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError(ex, nameof(AddSeller));
+                return null;
+            }
+        }
+        public static bool UpdateSeller(int? sellerID, string nationalNumber)
+        {
+            try
+            {
+                using (var context = new CarJenDbContext())
+                {
+                    var seller = context.Sellers.Find(sellerID);
+
+                    if (seller == null)
+                        return false;
+
+                    seller.NationalNumber = nationalNumber;
+                    context.SaveChanges();
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError(ex, nameof(UpdateSeller));
+                return false;
+            }
+        }
+        public static bool DeleteSeller(int sellerID)
+        {
+            try
+            {
+                using (var context = new CarJenDbContext())
+                {
+                    var seller = context.Sellers.Find(sellerID);
+
+                    if (seller == null)
+                        return false;
+
+                    context.Sellers.Remove(seller);
+                    context.SaveChanges();
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError(ex, nameof(DeleteSeller));
+                return false;
+            }
+        }
+
     }
 }

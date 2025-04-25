@@ -80,7 +80,7 @@ namespace CarJenBusiness.ApplicationLogic
         private bool _AddUser()
         {
 
-            this.PersonID = clsPerson.AddPerson(this.toPersonDto);
+            this.PersonID = PersonRepository.AddPerson(this.toPersonDto);
 
             if (PersonID.HasValue)
             {

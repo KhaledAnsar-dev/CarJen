@@ -1,5 +1,7 @@
 ﻿using CarJenBusiness.Helpers;
+using CarJenData.DataModels;
 using CarJenData.Repositories;
+using CarJenShared.Dtos.SellerDtos;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -16,16 +18,32 @@ namespace CarJenBusiness.ApplicationLogic
         public int? SellerID { get; set; }
         public string NationalNumber { get; set; }
         public decimal? Earnings { get; set; }
+        public SellerDto ToSellerDto
+        { 
+            get
+            {
+                return new SellerDto
+                {
+                    SellerId = (int)this.SellerID,
+                    NationalNumber = this.NationalNumber,
+                    Earnings = Convert.ToDecimal(this.Earnings),
+                    Person = this.toPersonDto
+                };
 
-        private clsSeller(int? SellerID, int? personID, string firstName, string middleName, string lastName,
-                   short gender, DateTime? dateOfBirth, string email, string phone, string address,
-                   DateTime? joinDate, bool isActive, string image, string userName, string password,
-                   string nationalNumber, decimal? Earnings)
-        : base(personID, firstName, middleName, lastName, gender, dateOfBirth, email, phone, address, joinDate, isActive, image, userName, password)
+            }
+        }
+
+        private clsSeller(SellerDto seller)
+        : base(seller.Person)
         {
-            this.SellerID = SellerID;
-            this.NationalNumber = nationalNumber;
-            this.Earnings = Earnings;
+            this.SellerID = seller.SellerId;
+            this.NationalNumber = seller.NationalNumber;
+            this.Earnings = seller.Earnings;
+            this.FirstName = seller.Person.FirstName;
+            this.MiddleName = seller.Person.MiddleName;
+            this.LastName = seller.Person.LastName;
+            this.Gender = seller.Person.Gender;
+            this.Phone = seller.Person.Phone;
 
             Mode = enMode.Update;
         }
@@ -44,8 +62,7 @@ namespace CarJenBusiness.ApplicationLogic
         // CRUD Opperations
         private bool _AddSeller()
         {
-            this.PersonID = clsPerson.AddPerson(FirstName, MiddleName, LastName, Gender, DateOfBirth,
-                Email, Phone, Address, IsActive, Image, UserName, Password);
+            this.PersonID = PersonRepository.AddPerson(this.toPersonDto);
 
             if (PersonID.HasValue)
             {
@@ -57,9 +74,10 @@ namespace CarJenBusiness.ApplicationLogic
         private bool _UpdateSeller()
         {
             bool Result = false;
-            if (clsPerson.UpdatePerson(PersonID, FirstName, MiddleName, LastName, Gender, DateOfBirth,
-                Email, Phone, Address, JoinDate, IsActive, Image, UserName, Password))
+
+            if (PersonRepository.UpdatePerson(this.toPersonDto))
             {
+                // Update the current user
                 Result = SellerRepository.UpdateSeller(SellerID, NationalNumber);
             }
 
@@ -105,28 +123,18 @@ namespace CarJenBusiness.ApplicationLogic
             {
                 // Delete User First than delete person because of data integrity
                 if (SellerRepository.DeleteSeller(SellerID))
-                    Result = clsPerson.DeletePerson(CurrentPersonID);
+                    Result = PersonRepository.DeletePerson(CurrentPersonID);
             }
 
             return Result;
         }
         static public clsSeller Find(int? SellerID)
         {
-            int? personID = null; string firstName = ""; string middleName = ""; string lastName = "";
-            short gender = 0; DateTime? dateOfBirth = null; string email = "";
-            string phone = ""; string address = ""; DateTime? joinDate = null; bool isActive = false; string image = "";
-            string userName = ""; string password = ""; string nationalNumber = ""; decimal? earnings = null;
+            var sellerDto = SellerRepository.GetSellerByID(SellerID);
 
-            if (SellerRepository.GetSellerByID(SellerID, ref personID,
-                   ref firstName, ref middleName, ref lastName,
-                   ref gender, ref dateOfBirth, ref email, ref phone,
-                   ref address, ref joinDate, ref isActive, ref image,
-                   ref userName, ref password, ref nationalNumber,
-                   ref earnings))
+            if(sellerDto != null)
             {
-                return new clsSeller(SellerID, personID, firstName, middleName, lastName,
-                gender, dateOfBirth, email, phone, address, joinDate,
-                isActive, image, userName, password, nationalNumber, earnings);
+                return new clsSeller(sellerDto);
             }
             else
                 return null;
@@ -134,20 +142,11 @@ namespace CarJenBusiness.ApplicationLogic
         }
         static public clsSeller Find(string NationalNumber)
         {
-            int? SellerID = null; int? personID = null; string firstName = ""; string middleName = ""; string lastName = "";
-            short gender = 0; DateTime? dateOfBirth = null; string email = "";
-            string phone = ""; string address = ""; DateTime? joinDate = null; bool isActive = false; string image = "";
-            string userName = ""; string password = ""; decimal? earnings = null;
+            var sellerDto = SellerRepository.GetSellerByNO(NationalNumber);
 
-            if (SellerRepository.GetSellerByNO(NationalNumber, ref SellerID, ref personID,
-                   ref firstName, ref middleName, ref lastName,
-                   ref gender, ref dateOfBirth, ref email, ref phone,
-                   ref address, ref joinDate, ref isActive, ref image,
-                   ref userName, ref password, ref earnings))
+            if (sellerDto != null)
             {
-                return new clsSeller(SellerID, personID, firstName, middleName, lastName,
-                gender, dateOfBirth, email, phone, address, joinDate,
-                isActive, image, userName, password, NationalNumber, earnings);
+                return new clsSeller(sellerDto);
             }
             else
                 return null;
@@ -155,28 +154,18 @@ namespace CarJenBusiness.ApplicationLogic
         }
         static public clsSeller FindSellerByCredentials(string userName, string password)
         {
-            int? SellerID = null; int? personID = null; string firstName = ""; string middleName = ""; string lastName = "";
-            short gender = 0; DateTime? dateOfBirth = null; string email = "";
-            string phone = ""; string address = ""; DateTime? joinDate = null; bool isActive = false; string image = "";
-            string nationalNumber = ""; decimal? earnings = null;
 
-            if (SellerRepository.GetSellerByCredentials(ref SellerID, ref personID,
-                   ref firstName, ref middleName, ref lastName,
-                   ref gender, ref dateOfBirth, ref email, ref phone,
-                   ref address, ref joinDate, ref isActive, ref image,
-                   userName, clsSecurity.ComputeHash(password), ref nationalNumber,
-                   ref earnings))
+            var sellerDto = SellerRepository.GetSellerByCredentials(userName, password);
+
+            if (sellerDto != null)
             {
-                return new clsSeller(SellerID, personID, firstName, middleName, lastName,
-                gender, dateOfBirth, email, phone, address, joinDate,
-                isActive, image, userName, password, nationalNumber, earnings);
+                return new clsSeller(sellerDto);
             }
             else
                 return null;
 
         }
-
-        static public DataTable GetAllSeller()
+        static public List<SellerDto> GetAllSeller()
         {
             return SellerRepository.GetAllSellers();
         }
