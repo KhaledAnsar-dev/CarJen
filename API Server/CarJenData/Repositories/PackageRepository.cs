@@ -1,180 +1,146 @@
 ﻿using CarJenData.DataModels;
+using CarJenShared.Dtos.PackageDtos;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Data;
 using System.Reflection;
+using static CarJenShared.Helpers.Logger;
 
 namespace CarJenData.Repositories
 {
     public class PackageRepository
     {
-        public static bool GetPackageByID(int? packageID, ref string title, ref int? numberOfReports, ref int? createdByUserID)
+        public static PackageDto? GetPackageByID(int? packageID)
         {
-            bool isFound = false;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
+                using (var context = new CarJenDbContext())
                 {
-                    using (SqlCommand command = new SqlCommand("SP_GetPackageByID", connection))
-                    {
-                        command.CommandType = CommandType.StoredProcedure;
-                        connection.Open();
-                        command.Parameters.AddWithValue("@PackageID", packageID);
-
-                        using (SqlDataReader reader = command.ExecuteReader())
+                    return context.Packages
+                        .Where(p => p.PackageId == packageID)
+                        .Select(p => new PackageDto
                         {
-                            if (reader.Read())
-                            {
-                                isFound = true;
-                                title = reader["Title"]?.ToString();
-                                numberOfReports = Convert.ToInt32(reader["NumberOfReports"]);
-                                createdByUserID = reader["CreatedByUser"] as int?;
-                            }
-                            else
-                            {
-                                isFound = false;
-                            }
-                        }
-                    }
+                            PackageID = p.PackageId,
+                            Title = p.Title,
+                            NumberOfReports = p.NumberOfReports,
+                            // p.CreatedByUser refer to an ID not a object
+                            CreatedByUserID = p.CreatedByUser                            
+                        })
+                        .FirstOrDefault();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetPackageByID));
+                return null;
             }
-
-            return isFound;
         }
 
-        public static int? AddPackage(string title, int? numberOfReports, int? createdByUserID, int? feeID)
+        static public int? AddPackage(PackageDto packageDto, int? FeeID)
         {
-            int? createdID = null;
+            int? CreatedID = null;
 
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
+                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
                 {
-                    using (SqlCommand command = new SqlCommand("SP_AddPackage", connection))
+
+                    using (SqlCommand Command = new SqlCommand("SP_AddPackage", Connection))
                     {
-                        command.CommandType = CommandType.StoredProcedure;
+                        Command.CommandType = CommandType.StoredProcedure;
 
-                        command.Parameters.AddWithValue("@Title", title);
-                        command.Parameters.AddWithValue("@NumberOfReports", numberOfReports);
-                        command.Parameters.AddWithValue("@CreatedByUserID", createdByUserID);
-                        command.Parameters.AddWithValue("@FeeID", feeID);
+                        Command.Parameters.AddWithValue("@Title", packageDto.Title);
+                        Command.Parameters.AddWithValue("@NumberOfReports", packageDto.NumberOfReports);
+                        Command.Parameters.AddWithValue("@CreatedByUserID", packageDto.CreatedByUserID);
+                        Command.Parameters.AddWithValue("@FeeID", FeeID);
 
-                        SqlParameter outputID = new SqlParameter("@PackageID", SqlDbType.Int)
+                        SqlParameter OutputID = new SqlParameter("@PackageID", SqlDbType.Int)
                         {
                             Direction = ParameterDirection.Output
                         };
 
-                        command.Parameters.Add(outputID);
-                        connection.Open();
-                        command.ExecuteNonQuery();
+                        Command.Parameters.Add(OutputID);
 
-                        createdID = (int)command.Parameters["@PackageID"].Value;
+
+                        Connection.Open();
+
+                        Command.ExecuteNonQuery();
+                        CreatedID = (int)Command.Parameters["@PackageID"].Value;
                     }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                string methodName = MethodBase.GetCurrentMethod().Name;
+                LogError(ex, methodName);
+            }
+            return CreatedID;
+        }
+
+        public static bool UpdatePackage(PackageDto dto)
+        {
+            try
+            {
+                using (var context = new CarJenDbContext())
+                {
+                    var package = context.Packages.Find(dto.PackageID);
+
+                    if (package == null)
+                        return false;
+
+                    package.Title = dto.Title;
+                    package.NumberOfReports = dto.NumberOfReports ?? 0;
+                    context.SaveChanges();
+
+                    return true;
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(UpdatePackage));
+                return false;
             }
-
-            return createdID;
         }
 
-        public static bool UpdatePackage(int? packageID, string title, int? numberOfReports)
+        public static List<PackageDto> GetAllPackages()
         {
-            int rowAffected = 0;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
+                using (var context = new CarJenDbContext())
                 {
-                    using (SqlCommand command = new SqlCommand("SP_UpdatePackage", connection))
-                    {
-                        command.CommandType = CommandType.StoredProcedure;
-
-                        command.Parameters.AddWithValue("@PackageID", packageID);
-                        command.Parameters.AddWithValue("@Title", title);
-                        command.Parameters.AddWithValue("@NumberOfReports", numberOfReports);
-
-                        connection.Open();
-                        rowAffected = command.ExecuteNonQuery();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
-            }
-
-            return rowAffected > 0;
-        }
-
-        public static DataTable GetAllPackages()
-        {
-            DataTable dt = new DataTable();
-
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                {
-                    connection.Open();
-                    using (SqlCommand command = new SqlCommand("SP_GetAllPackages", connection))
-                    {
-                        command.CommandType = CommandType.StoredProcedure;
-
-                        using (SqlDataReader reader = command.ExecuteReader())
+                    return context.Packages
+                        .Select(p => new PackageDto
                         {
-                            if (reader.HasRows)
-                                dt.Load(reader);
-                        }
-                    }
+                            PackageID = p.PackageId,
+                            Title = p.Title,
+                            NumberOfReports = p.NumberOfReports,
+                            CreatedByUserID = p.CreatedByUser
+                        })
+                        .ToList();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetAllPackages));
+                return new List<PackageDto>();
             }
-
-            return dt;
         }
 
         public static bool IsPackageExist(string title)
         {
-            bool isFound = false;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
+                using (var context = new CarJenDbContext())
                 {
-                    using (SqlCommand command = new SqlCommand("SP_IsPackageExist", connection))
-                    {
-                        command.CommandType = CommandType.StoredProcedure;
-                        command.Parameters.AddWithValue("@Title", title);
-
-                        connection.Open();
-                        using (SqlDataReader reader = command.ExecuteReader())
-                        {
-                            isFound = reader.HasRows;
-                        }
-                    }
+                    return context.Packages.Any(p => p.Title == title);
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(IsPackageExist));
+                return false;
             }
-
-            return isFound;
         }
     }
 }

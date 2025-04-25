@@ -1,4 +1,5 @@
 ﻿using CarJenData.Repositories;
+using CarJenShared.Dtos.PackageDtos;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -18,15 +19,29 @@ namespace CarJenBusiness.ApplicationLogic
         public int? NumberOfReports { get; set; }
         public int? CreatedByUserID { get; set; }
 
+        public PackageDto ToPackageDto
+        {
+            get
+            {
+                return new PackageDto
+                {
+                    PackageID = this.PackageID,
+                    Title = this.Title,
+                    NumberOfReports = this.NumberOfReports,
+                    CreatedByUserID = this.CreatedByUserID
+                };
+            }
+        }
+
         clsUser CreatedByUser;
         clsFees Fee;
 
-        private clsPackage(int? PackageID, string Title, int? NumberOfReports, int? CreatedByUserID)
+        private clsPackage(PackageDto packageDto)
         {
-            this.PackageID = PackageID;
-            this.Title = Title;
-            this.NumberOfReports = NumberOfReports;
-            this.CreatedByUserID = CreatedByUserID;
+            this.PackageID = packageDto.PackageID;
+            this.Title = packageDto.Title;
+            this.NumberOfReports = packageDto.NumberOfReports;
+            this.CreatedByUserID = packageDto.CreatedByUserID;
             Fee = clsFees.Find(clsFees.enFeeType.ReportFee);
             CreatedByUser = clsUser.Find(this.CreatedByUserID);
             Mode = enMode.Update;
@@ -48,12 +63,12 @@ namespace CarJenBusiness.ApplicationLogic
         // CRUD Opperations
         private bool _AddPackage()
         {
-            this.PackageID = PackageRepository.AddPackage(Title, NumberOfReports, CreatedByUserID, Fee.FeeID);
+            this.PackageID = PackageRepository.AddPackage(ToPackageDto, Fee.FeeID);
             return this.PackageID != null;
         }
         private bool _UpdatePackage()
         {
-            return PackageRepository.UpdatePackage(PackageID, Title, NumberOfReports);
+            return PackageRepository.UpdatePackage(ToPackageDto);
         }
         public bool Save()
         {
@@ -78,23 +93,20 @@ namespace CarJenBusiness.ApplicationLogic
             return false;
         }
 
-        static public clsPackage Find(int? PackageID)
+        static public clsPackage? Find(int? packageID)
         {
-            string Title = ""; int? NumberOfReports = null;
-            int? CreatedByUserID = null;
+            var packageDto = PackageRepository.GetPackageByID(packageID);
 
-            if (PackageRepository.GetPackageByID(PackageID, ref Title, ref NumberOfReports, ref CreatedByUserID))
-                return new clsPackage(PackageID, Title, NumberOfReports, CreatedByUserID);
+            if(packageDto != null)
+                return new clsPackage(packageDto);
             else
                 return null;
         }
-
         public static bool IsPackageExist(string Title)
         {
             return PackageRepository.IsPackageExist(Title);
         }
-
-        static public DataTable GetAllPackages()
+        static public List<PackageDto> GetAllPackages()
         {
             return PackageRepository.GetAllPackages();
         }
