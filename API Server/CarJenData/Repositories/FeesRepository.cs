@@ -1,50 +1,45 @@
 ﻿using CarJenData.DataModels;
+using CarJenShared.Dtos.FeeDtos;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Data;
+using System.Reflection.PortableExecutable;
+using System.Security.AccessControl;
+using static CarJenShared.Helpers.Logger;
 
 namespace CarJenData.Repositories
 {
     public class FeeRepository
     {
-        public static bool GetCurrentFeeByType(ref int? FeeID, byte? MainFeeType, ref DateTime? StartDate, ref DateTime? EndDate, ref decimal? Amount)
+        public static FeeDto? GetCurrentFeeByType(byte? mainFeeType)
         {
-            bool IsFound = false;
-
             try
             {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_GetCurrentFeeByType", Connection))
+                using (var context = new CarJenDbContext())
                 {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Command.Parameters.AddWithValue("@MainFeeType", MainFeeType);
-
-                    Connection.Open();
-
-                    using (SqlDataReader Reader = Command.ExecuteReader())
-                    {
-                        if (Reader.Read())
+                    return context.MainFees.
+                        Where(f => f.MainFeeType == mainFeeType && f.EndDate == null)
+                        .Select(f => new FeeDto
                         {
-                            IsFound = true;
-
-                            FeeID = Convert.ToInt32(Reader["MainFeeID"]);
-                            StartDate = Convert.ToDateTime(Reader["StartDate"]);
-                            EndDate = Reader["EndDate"] != DBNull.Value ? (DateTime?)Convert.ToDateTime(Reader["EndDate"]) : null;
-                            Amount = Convert.ToDecimal(Reader["Amount"]);
-                        }
-                    }
+                            FeeID = f.MainFeeId,
+                            FeeTypeID = f.MainFeeType,
+                            Amount = f.Amount,
+                            StartDate = f.StartDate,
+                            EndDate = f.EndDate
+                        })
+                        .FirstOrDefault();
+                    
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetCurrentFeeByType));
+                return null;
+
             }
 
-            return IsFound;
         }
-
-        public static bool RenewFeeFor(byte MainFeeType, decimal NewAmountFee)
+        public static bool RenewFeeFor(byte mainFeeType, decimal newAmountFee)
         {
             int RowAffected = 0;
 
@@ -54,8 +49,8 @@ namespace CarJenData.Repositories
                 using (SqlCommand Command = new SqlCommand("SP_RenewFee", Connection))
                 {
                     Command.CommandType = CommandType.StoredProcedure;
-                    Command.Parameters.AddWithValue("@MainFeeType", MainFeeType);
-                    Command.Parameters.AddWithValue("@NewAmountFee", NewAmountFee);
+                    Command.Parameters.AddWithValue("@MainFeeType", mainFeeType);
+                    Command.Parameters.AddWithValue("@NewAmountFee", newAmountFee);
 
                     Connection.Open();
                     RowAffected = Command.ExecuteNonQuery();
@@ -63,64 +58,57 @@ namespace CarJenData.Repositories
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(RenewFeeFor));
             }
 
             return RowAffected > 0;
         }
-
-        public static bool DeleteUnusedFee(int MainFeeID)
+        public static bool DeleteUnusedFee(int mainFeeId)
         {
-            int RowAffected = 0;
-
             try
             {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_DeleteFee", Connection))
+                using (var context = new CarJenDbContext())
                 {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Command.Parameters.AddWithValue("@MainFeeID", MainFeeID);
+                    var fee = context.MainFees
+                        .FirstOrDefault(f => f.MainFeeId == mainFeeId && f.EndDate == null);
 
-                    Connection.Open();
-                    RowAffected = Command.ExecuteNonQuery();
+                    if (fee == null)
+                        return false;
+
+                    context.MainFees.Remove(fee);
+                    context.SaveChanges();
+                    return true;
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(DeleteUnusedFee));
+                return false;
             }
-
-            return RowAffected > 0;
         }
-
-        public static DataTable GetAllFees()
+        public static List<FeeDto> GetAllFees()
         {
-            DataTable dt = new DataTable();
-
             try
             {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_GetAllFees", Connection))
+                using (var context = new CarJenDbContext())
                 {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Connection.Open();
-
-                    using (SqlDataReader reader = Command.ExecuteReader())
-                    {
-                        if (reader.HasRows)
-                            dt.Load(reader);
-                    }
+                    return context.MainFees
+                        .Select(f => new FeeDto
+                        {
+                            FeeID = f.MainFeeId,
+                            FeeTypeID = f.MainFeeType,
+                            Amount = f.Amount,
+                            StartDate = f.StartDate,
+                            EndDate = f.EndDate
+                        })
+                        .ToList();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetAllFees));
+                return new List<FeeDto>();
             }
-
-            return dt;
         }
     }
 }

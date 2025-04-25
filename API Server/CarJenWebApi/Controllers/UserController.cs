@@ -19,9 +19,6 @@ namespace CarJenWebApi.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult<IEnumerable<UserSummaryDto>> GetAllUsers()
         {
-            // Using mapstaer to convert the object
-            //var users = clsUser.GetAllUsers().Adapt<List<UserSummaryDto>>();
-
             // Using our custom converting method
 
             var users = clsUser.GetAllUsers()

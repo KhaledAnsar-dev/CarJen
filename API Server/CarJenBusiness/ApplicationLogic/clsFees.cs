@@ -1,4 +1,5 @@
 ﻿using CarJenData.Repositories;
+using CarJenShared.Dtos.FeeDtos;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -15,16 +16,32 @@ namespace CarJenBusiness.ApplicationLogic
         public decimal? Amount { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
-
-        private clsFees(int? feeID, byte? feeTypeID, decimal? amount, DateTime? startDate, DateTime? endDate)
+        public FeeDto ToFeeDto
         {
-            FeeID = feeID;
-            FeeTypeID = feeTypeID;
-            Amount = amount;
-            StartDate = startDate;
-            EndDate = endDate;
+            get
+            {
+                return new FeeDto
+                {
+                    FeeID = this.FeeID,
+                    FeeTypeID = (byte)this.FeeTypeID,
+                    Amount = this.Amount,
+                    StartDate = this.StartDate,
+                    EndDate = this.EndDate,
+                };
+            }
         }
-
+        private clsFees(FeeDto feeDto)
+        {
+            FeeID = feeDto.FeeID;
+            FeeTypeID = feeDto.FeeTypeID;
+            Amount = feeDto.Amount;
+            StartDate = feeDto.StartDate;
+            EndDate = feeDto.EndDate;
+        }
+        public clsFees()
+        {
+            
+        }
         private static Dictionary<enFeeType, string> _FeeTypeText = new Dictionary<enFeeType, string>
         {
             {enFeeType.InspectionFee,"Inspection Fee" },
@@ -65,26 +82,25 @@ namespace CarJenBusiness.ApplicationLogic
                     }
             }
         }
-        public static bool Renew(byte MainFeeType, decimal NewAmountFee)
+        public static bool Renew(byte mainFeeType, decimal newAmountFee)
         {
-            return FeeRepository.RenewFeeFor(MainFeeType, NewAmountFee);
+            return FeeRepository.RenewFeeFor(mainFeeType, newAmountFee);
         }
-        public static bool Delete(int MainFeeID)
+        public static bool Delete(int mainFeeID)
         {
-            return FeeRepository.DeleteUnusedFee(MainFeeID);
+            return FeeRepository.DeleteUnusedFee(mainFeeID);
         }
-        public static clsFees Find(enFeeType MainFeeType)
+        public static clsFees? Find(enFeeType mainFeeType)
         {
-            int? FeeID = null; decimal? Amount = null; DateTime? StartDate = null; DateTime? EndDate = null;
 
-            if (FeeRepository.GetCurrentFeeByType(ref FeeID, (byte)MainFeeType, ref StartDate, ref EndDate, ref Amount))
-            {
-                return new clsFees(FeeID, (byte)MainFeeType, Amount, StartDate, EndDate);
-            }
+            var feeDto = FeeRepository.GetCurrentFeeByType((byte)mainFeeType);
+
+            if(feeDto != null)
+                return new clsFees(feeDto);
             else
                 return null;
         }
-        static public DataTable GetAllFees()
+        static public List<FeeDto> GetAllFees()
         {
             return FeeRepository.GetAllFees();
         }
