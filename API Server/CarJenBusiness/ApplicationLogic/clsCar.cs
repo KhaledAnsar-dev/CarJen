@@ -1,5 +1,5 @@
 ﻿using CarJenData.Repositories;
-using CarJenShared.Dtos.CarDto;
+using CarJenShared.Dtos.CarDtos;
 using System;
 using System.Collections.Generic;
 using System.Data;

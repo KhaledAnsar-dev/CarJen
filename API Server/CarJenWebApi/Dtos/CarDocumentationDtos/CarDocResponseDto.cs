@@ -1,17 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using CarJenShared.Dtos.CarDtos;
 
-namespace CarJenShared.Dtos.CarDto
+namespace CarJenWebApi.Dtos.CarDocumentationDtos
 {
-    public class CarDto
+    public class CarDocResponseDto
     {
-        public int? CarID { get; set; }
-        public BrandDto Brand { get; set; }
-        public ModelDto Model { get; set; }
-        public TrimDto Trim { get; set; }
+        public int? CarDocumentationID { get; set; }
+        public int? SellerID { get; set; }
+        public string Brand { get; set; } 
+        public string Model { get; set; }
+        public string Trim { get; set; }
         public short? FuelType { get; set; }
         public int? Mileage { get; set; }
         public short? TransmissionType { get; set; }
@@ -21,5 +18,6 @@ namespace CarJenShared.Dtos.CarDto
         public string PlateNumber { get; set; }
         public DateTime? RegistrationExp { get; set; }
         public DateTime? TechInspectionExp { get; set; }
+        public DateTime? CreatedDate { get; set; }
     }
 }

@@ -4,132 +4,181 @@ using System;
 using System.Data;
 using System.Reflection;
 
+using CarJenShared.Dtos.CarDocumentationDtos;
+using CarJenShared.Dtos.CarDtos;
+using CarJenShared.Dtos.SellerDtos;
+using Microsoft.EntityFrameworkCore;
+using CarJenShared.Dtos.PersonDtos;
+using static CarJenShared.Helpers.Logger;
+
 namespace CarJenData.Repositories
 {
     public class CarDocumentationRepository
     {
-        public static bool GetCarDocumentationByID(int? CarDocumentationID, ref int? SellerID, ref int? CarID, ref DateTime? CreatedDate)
+        public static CarDocumentationDto? GetCarDocumentationByID(int? carDocumentationID)
         {
-            bool IsFound = false;
-
             try
             {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_GetCarDocumentationByID", Connection))
+                using (var context = new CarJenDbContext())
                 {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Connection.Open();
-                    Command.Parameters.AddWithValue("@CarDocumentationID", CarDocumentationID);
-
-                    using (SqlDataReader Reader = Command.ExecuteReader())
-                    {
-                        if (Reader.Read())
+                    return context.CarDocumentations
+                        .Where(cd => cd.CarDocumentationId == carDocumentationID)
+                        .Select(cd => new CarDocumentationDto
                         {
-                            IsFound = true;
-                            SellerID = Convert.ToInt32(Reader["SellerID"]);
-                            CarID = Convert.ToInt32(Reader["CarID"]);
-                            CreatedDate = Convert.ToDateTime(Reader["CreatedDate"]);
-                        }
-                    }
+                            CarDocumentationID = cd.CarDocumentationId,
+                            CreatedDate = cd.CreatedDate,
+
+                            Seller = new SellerDto
+                            {
+                                SellerId = cd.Seller.SellerId,
+                                NationalNumber = cd.Seller.NationalNumber,
+                                Earnings = cd.Seller.Earnings,
+                                Person = new PersonDto
+                                {
+                                    PersonID = cd.Seller.Person.PersonId,
+                                    FirstName = cd.Seller.Person.FirstName,
+                                    MiddleName = cd.Seller.Person.MiddleName,
+                                    LastName = cd.Seller.Person.LastName,
+                                    Gender = (short)cd.Seller.Person.Gender,
+                                    DateOfBirth = cd.Seller.Person.DateOfBirth,
+                                    Email = cd.Seller.Person.Email,
+                                    Phone = cd.Seller.Person.Phone,
+                                    Address = cd.Seller.Person.Address,
+                                    JoinDate = cd.Seller.Person.JoinDate,
+                                    IsActive = cd.Seller.Person.IsActive,
+                                    Image = cd.Seller.Person.Image,
+                                    UserName = cd.Seller.Person.UserName,
+                                    Password = cd.Seller.Person.Password
+                                }
+                            },
+
+                            Car = new CarDto
+                            {
+                                CarID = cd.Car.CarId,
+                                Brand = new BrandDto
+                                {
+                                    BrandID = cd.Car.Trim.Model.Brand.BrandId,
+                                    Brand = cd.Car.Trim.Model.Brand.Brand1
+                                },
+                                Model = new ModelDto
+                                {
+                                    ModelID = cd.Car.Trim.Model.ModelId,
+                                    Model = cd.Car.Trim.Model.Model1,
+                                    BrandID = cd.Car.Trim.Model.BrandId
+                                },
+                                Trim = new TrimDto
+                                {
+                                    TrimID = cd.Car.Trim.TrimId,
+                                    Trim = cd.Car.Trim.Trim1,
+                                    ModelID = cd.Car.Trim.ModelId
+                                },
+                                FuelType = cd.Car.FuelType,
+                                Mileage = cd.Car.Mileage,
+                                TransmissionType = cd.Car.TransmissionType,
+                                Year = cd.Car.Year,
+                                Color = cd.Car.Color,
+                                Price = cd.Car.Price,
+                                PlateNumber = cd.Car.PlateNumber,
+                                RegistrationExp = cd.Car.RegistrationExp,
+                                TechInspectionExp = cd.Car.TechInspectionExp
+                            }
+                        })
+                        .FirstOrDefault();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetCarDocumentationByID));
+                return null;
             }
-
-            return IsFound;
         }
-
-        public static int? AddCarDocumentation(int? SellerID, int? CarID)
+        public static int? AddCarDocumentation(int? sellerID, int? carID)
         {
-            int? CreatedID = null;
-
             try
             {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_AddCarDocumentation", Connection))
+                using (var context = new CarJenDbContext())
                 {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Command.Parameters.AddWithValue("@SellerID", SellerID);
-                    Command.Parameters.AddWithValue("@CarID", CarID);
-
-                    SqlParameter OutputID = new SqlParameter("@CarDocumentationID", SqlDbType.Int)
+                    var carDocumentation = new CarDocumentation
                     {
-                        Direction = ParameterDirection.Output
+                        SellerId = sellerID ?? 0,
+                        CarId = carID ?? 0,
+                        CreatedDate = DateTime.Now
                     };
-                    Command.Parameters.Add(OutputID);
 
-                    Connection.Open();
-                    Command.ExecuteNonQuery();
-                    CreatedID = (int)Command.Parameters["@CarDocumentationID"].Value;
+                    context.CarDocumentations.Add(carDocumentation);
+                    context.SaveChanges();
+
+                    return carDocumentation.CarDocumentationId;
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(AddCarDocumentation));
+                return null;
             }
-
-            return CreatedID;
         }
-
-        public static DataTable GetAllCarDocumentations()
+        public static List<CarDocumentationDto> GetAllCarDocumentations()
         {
-            DataTable dt = new DataTable();
-
             try
             {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_GetAllCarDocumentations", Connection))
+                using (var context = new CarJenDbContext())
                 {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Connection.Open();
-
-                    using (SqlDataReader reader = Command.ExecuteReader())
-                    {
-                        if (reader.HasRows)
-                            dt.Load(reader);
-                    }
+                    return context.CarDocumentations
+                        .Select(cd => new CarDocumentationDto
+                        {
+                            CarDocumentationID = cd.CarDocumentationId,
+                            Seller = new SellerDto
+                            {
+                                SellerId = cd.Seller.SellerId,
+                                Person = new PersonDto
+                                {
+                                    FirstName = cd.Seller.Person.FirstName,
+                                    LastName = cd.Seller.Person.LastName,
+                                }
+                            },
+                            Car = new CarDto
+                            {
+                                Brand = new BrandDto
+                                {
+                                    Brand = cd.Car.Trim.Model.Brand.Brand1,// brand name
+                                },
+                                Model = new ModelDto
+                                {
+                                    Model = cd.Car.Trim.Model.Model1,// model name
+                                },
+                                Trim = new TrimDto
+                                {
+                                    Trim = cd.Car.Trim.Trim1,// trim name
+                                },
+                                Mileage = cd.Car.Mileage,
+                                Year = cd.Car.Year
+                            }
+                        })
+                        .ToList();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetAllCarDocumentations));
+                return new List<CarDocumentationDto>();
             }
-
-            return dt;
         }
-
-        public static bool IsCarDocumentationExist(int CarDocumentationID)
+        public static bool IsCarDocumentationExist(int carDocumentationID)
         {
-            bool isFound = false;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("SP_IsCarDocumentationExist", connection))
+                using (var context = new CarJenDbContext())
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@CarDocumentationID", CarDocumentationID);
-                    connection.Open();
-
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        isFound = reader.HasRows;
-                    }
+                    return context.CarDocumentations.Any(cd => cd.CarDocumentationId == carDocumentationID);
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(IsCarDocumentationExist));
+                return false;
             }
-
-            return isFound;
         }
     }
 }
+
 

@@ -1,4 +1,6 @@
 ﻿using CarJenData.Repositories;
+using CarJenShared.Dtos.CarDocumentationDtos;
+using CarJenShared.Dtos.CarDtos;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -18,16 +20,29 @@ namespace CarJenBusiness.ApplicationLogic
         public clsSeller Seller;
         public clsCar Car;
 
-
-        private clsCarDocumentation(int? carDocumentationID, int? sellerID, int? carID, DateTime? createdDate)
+        public CarDocumentationDto ToCarDocDto
         {
-            CarDocumentationID = carDocumentationID;
-            SellerID = sellerID;
-            CarID = carID;
-            CreatedDate = createdDate;
+            get
+            {
+                return new CarDocumentationDto
+                {
+                    CarDocumentationID = this.CarDocumentationID,
+                    CreatedDate = this.CreatedDate,
+                    Seller = this.Seller.ToSellerDto,
+                    Car = this.Car.ToCarDto
+                };
+            }
+        }
 
-            Seller = clsSeller.Find(SellerID);
-            Car = clsCar.Find(CarID);
+        private clsCarDocumentation(CarDocumentationDto carDocDto)
+        {
+            CarDocumentationID = carDocDto.CarDocumentationID;
+            SellerID = carDocDto.Seller.SellerId;
+            CarID = carDocDto.Car.CarID;
+            CreatedDate = carDocDto.CreatedDate;
+
+            Seller = clsSeller.Find(carDocDto.Seller.SellerId);
+            Car = clsCar.Find(carDocDto.Car.CarID);
         }
         public clsCarDocumentation()
         {
@@ -37,25 +52,21 @@ namespace CarJenBusiness.ApplicationLogic
             CreatedDate = null;
         }
 
-        public bool _AddCarDocumentation()
+        public bool AddCarDocumentation()
         {
             this.CarDocumentationID = CarDocumentationRepository.AddCarDocumentation(SellerID, CarID);
             return this.CarDocumentationID != null;
         }
-        static public clsCarDocumentation Find(int? CarDocumentationID)
+        static public clsCarDocumentation? Find(int? CarDocumentationID)
         {
-            int? SellerID = null; int? CarID = null; DateTime? CreatedDate = null;
+            var carDocDto = CarDocumentationRepository.GetCarDocumentationByID(CarDocumentationID);
 
-            if (CarDocumentationRepository.GetCarDocumentationByID(CarDocumentationID, ref SellerID,
-                   ref CarID, ref CreatedDate))
-            {
-                return new clsCarDocumentation(CarDocumentationID, SellerID, CarID, CreatedDate);
-            }
+            if(carDocDto != null)
+                return new clsCarDocumentation(carDocDto);
             else
                 return null;
-
         }
-        static public DataTable GetAllCarDocumentations()
+        static public List<CarDocumentationDto> GetAllCarDocumentations()
         {
             return CarDocumentationRepository.GetAllCarDocumentations();
         }
@@ -63,8 +74,6 @@ namespace CarJenBusiness.ApplicationLogic
         {
             return CarDocumentationRepository.IsCarDocumentationExist(CarDocumentationID);
         }
-
-
     }
 
 }

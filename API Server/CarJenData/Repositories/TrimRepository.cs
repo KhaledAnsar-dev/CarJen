@@ -1,5 +1,5 @@
 ﻿using CarJenData.DataModels;
-using CarJenShared.Dtos.CarDto;
+using CarJenShared.Dtos.CarDtos;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Data;
