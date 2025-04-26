@@ -1,103 +1,80 @@
 ﻿using CarJenData.DataModels;
+using CarJenShared.Dtos.CarDto;
 using Microsoft.Data.SqlClient; // استخدام Microsoft.Data.SqlClient
 using System;
 using System.Data;
-using System.Reflection;
+using static CarJenShared.Helpers.Logger;
 
 namespace CarJenData.Repositories
 {
-    public class BrandRepository
+    public static class BrandRepository
     {
-        public static bool GetBrandByID(int? BrandID, ref string Brand)
+        public static BrandDto? GetBrandByID(int? brandID)
         {
-            bool IsFound = false;
-
             try
             {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_GetBrandByID", Connection))
+                using (var context = new CarJenDbContext())
                 {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Connection.Open();
-                    Command.Parameters.AddWithValue("@BrandID", BrandID);
-
-                    using (SqlDataReader Reader = Command.ExecuteReader())
-                    {
-                        if (Reader.Read())
+                    return context.Brands
+                        .Where(b => b.BrandId == brandID)
+                        .Select(b => new BrandDto
                         {
-                            IsFound = true;
-                            Brand = Reader["Brand"]?.ToString();
-                        }
-                    }
+                            BrandID = b.BrandId,
+                            Brand = b.Brand1
+                        })
+                        .FirstOrDefault();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetBrandByID));
+                return null;
             }
-
-            return IsFound;
         }
 
-        public static bool GetBrandByName(string Brand, ref int? BrandID)
+        public static BrandDto? GetBrandByName(string brandName)
         {
-            bool IsFound = false;
-
             try
             {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_GetBrandByName", Connection))
+                using (var context = new CarJenDbContext())
                 {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Connection.Open();
-                    Command.Parameters.AddWithValue("@Brand", Brand);
-
-                    using (SqlDataReader Reader = Command.ExecuteReader())
-                    {
-                        if (Reader.Read())
+                    return context.Brands
+                        .Where(b => b.Brand1 == brandName)
+                        .Select(b => new BrandDto
                         {
-                            IsFound = true;
-                            BrandID = Convert.ToInt32(Reader["BrandID"]);
-                        }
-                    }
+                            BrandID = b.BrandId,
+                            Brand = b.Brand1
+                        })
+                        .FirstOrDefault();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetBrandByName));
+                return null;
             }
-
-            return IsFound;
         }
 
-        public static DataTable GetAllBrands()
+        public static List<BrandDto> GetAllBrands()
         {
-            DataTable dt = new DataTable();
-
             try
             {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_GetAllBrands", Connection))
+                using (var context = new CarJenDbContext())
                 {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Connection.Open();
-
-                    using (SqlDataReader reader = Command.ExecuteReader())
-                    {
-                        if (reader.HasRows)
-                            dt.Load(reader);
-                    }
+                    return context.Brands
+                        .Select(b => new BrandDto
+                        {
+                            BrandID = b.BrandId,
+                            Brand = b.Brand1
+                        })
+                        .ToList();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetAllBrands));
+                return new List<BrandDto>();
             }
-
-            return dt;
         }
     }
 }

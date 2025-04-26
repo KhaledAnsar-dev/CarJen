@@ -1,122 +1,84 @@
 ﻿using CarJenData.DataModels;
+using CarJenShared.Dtos.CarDto;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Data;
-using System.Reflection;
-
+using static CarJenShared.Helpers.Logger;
 namespace CarJenData.Repositories
 {
-    public class ModelRepository
+    public static class ModelRepository
     {
-        public static bool GetModelByID(int? modelID, ref string model, ref int? brandID)
+        // Note : Brand1 , Model1 refer to the name
+        public static ModelDto? GetModelByID(int? modelID)
         {
-            bool isFound = false;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
+                using (var context = new CarJenDbContext())
                 {
-                    using (SqlCommand command = new SqlCommand("SP_GetModelByID", connection))
-                    {
-                        command.CommandType = CommandType.StoredProcedure;
-                        connection.Open();
-                        command.Parameters.AddWithValue("@ModelID", modelID);
-
-                        using (SqlDataReader reader = command.ExecuteReader())
+                    return context.Models
+                        .Where(m => m.ModelId == modelID)
+                        .Select(m => new ModelDto
                         {
-                            if (reader.Read())
-                            {
-                                isFound = true;
-
-                                model = reader["Model"]?.ToString();
-                                brandID = reader["BrandID"] as int?;
-                            }
-                            else
-                            {
-                                isFound = false;
-                            }
-                        }
-                    }
+                            ModelID = m.ModelId,
+                            Model = m.Model1,
+                            BrandID = m.BrandId
+                        })
+                        .FirstOrDefault();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetModelByID));
+                return null;
             }
-
-            return isFound;
         }
 
-        public static bool GetModelByFullName(string brand, string model, ref int? modelID, ref int? brandID)
+        public static ModelDto? GetModelByFullName(string brand, string model)
         {
-            bool isFound = false;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
+                using (var context = new CarJenDbContext())
                 {
-                    using (SqlCommand command = new SqlCommand("SP_GetModelByFullName", connection))
-                    {
-                        command.CommandType = CommandType.StoredProcedure;
-                        connection.Open();
-                        command.Parameters.AddWithValue("@Brand", brand);
-                        command.Parameters.AddWithValue("@Model", model);
-
-                        using (SqlDataReader reader = command.ExecuteReader())
+                    return context.Models
+                        .Where(m => m.Brand.Brand1 == brand && m.Model1 == model)
+                        .Select(m => new ModelDto
                         {
-                            if (reader.Read())
-                            {
-                                isFound = true;
-
-                                brandID = reader["BrandID"] as int?;
-                                modelID = reader["ModelID"] as int?;
-                            }
-                            else
-                            {
-                                isFound = false;
-                            }
-                        }
-                    }
+                            ModelID = m.ModelId,
+                            Model = m.Model1,
+                            BrandID = m.BrandId
+                        })
+                        .FirstOrDefault();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetModelByFullName));
+                return null;
             }
-
-            return isFound;
         }
 
-        public static DataTable GetAllModels()
+        public static List<ModelDto> GetAllModels()
         {
-            DataTable dt = new DataTable();
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
+                using (var context = new CarJenDbContext())
                 {
-                    connection.Open();
-                    using (SqlCommand command = new SqlCommand("SP_GetAllModels", connection))
-                    {
-                        command.CommandType = CommandType.StoredProcedure;
-
-                        using (SqlDataReader reader = command.ExecuteReader())
+                    return context.Models
+                        .Select(m => new ModelDto
                         {
-                            if (reader.HasRows)
-                                dt.Load(reader);
-                        }
-                    }
+                            ModelID = m.ModelId,
+                            Model = m.Model1,
+                            BrandID = m.BrandId
+                        })
+                        .ToList();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetAllModels));
+                return new List<ModelDto>();
             }
-
-            return dt;
         }
     }
 }
+

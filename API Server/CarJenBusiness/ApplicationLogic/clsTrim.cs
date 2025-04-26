@@ -1,4 +1,5 @@
 ﻿using CarJenData.Repositories;
+using CarJenShared.Dtos.CarDto;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -14,28 +15,28 @@ namespace CarJenBusiness.ApplicationLogic
         public string Trim { get; set; }
         public int? ModelID { get; set; }
 
-        private clsTrim(int? TrimID, string Trim, int? ModelID)
+        private clsTrim(TrimDto trimDto)
         {
-            this.ModelID = ModelID;
-            this.Trim = Trim;
-            this.ModelID = ModelID;
+            this.ModelID = trimDto.ModelID;
+            this.Trim = trimDto.Trim;
+            this.ModelID = trimDto.ModelID;
         }
 
-        static public clsTrim Find(int? TrimID)
+        static public clsTrim? Find(int? TrimID)
         {
-            string Trim = ""; int? ModelID = null;
-            if (TrimRepository.GetTrimByID(TrimID, ref Trim, ref ModelID))
-                return new clsTrim(ModelID, Trim, ModelID);
+            var trimDto = TrimRepository.GetTrimByID(TrimID);
+            if(trimDto != null)
+                return new clsTrim(trimDto);
             else
                 return null;
         }
         static public int? FindTrimID(string Trim, string Model, string Brand)
         {
-            int? TrimID = null;
-            return TrimRepository.GetTrimIDByFullName(Trim, Model, Brand, ref TrimID) ? TrimID : null;
+            var trimDto = TrimRepository.GetTrimIDByFullName(Trim, Model, Brand);
+            if (trimDto != null) return trimDto.TrimID; else return null;
         }
 
-        static public DataTable GetAllTrims()
+        static public List<TrimDto> GetAllTrims()
         {
             return TrimRepository.GetAllTrims();
         }

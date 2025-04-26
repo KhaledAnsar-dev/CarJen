@@ -1,8 +1,10 @@
 ﻿using CarJenData.Repositories;
+using CarJenShared.Dtos.CarDto;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,31 +14,42 @@ namespace CarJenBusiness.ApplicationLogic
     {
         public int? BrandID { get; set; }
         public string Brand { get; set; }
-
-        private clsBrand(int? BrandID, string Brand)
+        public BrandDto ToBrandDto
         {
-            this.BrandID = BrandID;
-            this.Brand = Brand;
+            get
+            {
+                return new BrandDto
+                {
+                    BrandID = this.BrandID,
+                    Brand = this.Brand
+                };                
+            }
         }
 
-        static public clsBrand Find(int? BrandID)
+        private clsBrand(BrandDto brandDto)
         {
-            string Brand = "";
-            if (BrandRepository.GetBrandByID(BrandID, ref Brand))
-                return new clsBrand(BrandID, Brand);
+            this.BrandID = brandDto.BrandID;
+            this.Brand = brandDto.Brand;
+        }
+
+        static public clsBrand? Find(int? BrandID)
+        {
+            var brandDto = BrandRepository.GetBrandByID(BrandID);
+            if (brandDto != null)
+                return new clsBrand(brandDto);
             else
                 return null;
         }
         static public clsBrand Find(string Brand)
         {
-            int? BrandID = null;
-            if (BrandRepository.GetBrandByName(Brand, ref BrandID))
-                return new clsBrand(BrandID, Brand);
+            var brandDto = BrandRepository.GetBrandByName(Brand);
+            if (brandDto != null)
+                return new clsBrand(brandDto);
             else
                 return null;
         }
 
-        static public DataTable GetAllBrands()
+        static public List<BrandDto> GetAllBrands()
         {
             return BrandRepository.GetAllBrands();
         }

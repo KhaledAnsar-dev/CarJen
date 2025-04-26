@@ -1,4 +1,5 @@
 ﻿using CarJenData.Repositories;
+using CarJenShared.Dtos.CarDto;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -14,31 +15,31 @@ namespace CarJenBusiness.ApplicationLogic
         public string Model { get; set; }
         public int? BrandID { get; set; }
 
-        private clsModel(int? ModelID, string Model, int? BrandID)
+        private clsModel(ModelDto modelDto)
         {
-            this.ModelID = ModelID;
-            this.Model = Model;
-            this.BrandID = BrandID;
+            this.ModelID = modelDto.ModelID;
+            this.Model = modelDto.Model;
+            this.BrandID = modelDto.BrandID;
         }
 
-        static public clsModel Find(int? ModelID)
+        static public clsModel? Find(int? ModelID)
         {
-            string Model = ""; int? BrandID = null;
-            if (ModelRepository.GetModelByID(ModelID, ref Model, ref BrandID))
-                return new clsModel(ModelID, Model, BrandID);
-            else
-                return null;
+            var modelDto = ModelRepository.GetModelByID(ModelID);
+
+            if (modelDto != null)
+                return new clsModel(modelDto);
+            return null;
         }
         static public clsModel Find(string Brand, string Model)
         {
-            int? ModelID = null; int? BrandID = null;
-            if (ModelRepository.GetModelByFullName(Brand, Model, ref ModelID, ref BrandID))
-                return new clsModel(ModelID, Model, BrandID);
-            else
-                return null;
+            var modelDto = ModelRepository.GetModelByFullName(Brand, Model);
+
+            if (modelDto != null)
+                return new clsModel(modelDto);
+            return null;
         }
 
-        static public DataTable GetAllModels()
+        static public List<ModelDto> GetAllModels()
         {
             return ModelRepository.GetAllModels();
         }

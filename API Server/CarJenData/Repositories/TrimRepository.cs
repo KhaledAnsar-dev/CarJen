@@ -1,113 +1,84 @@
 ﻿using CarJenData.DataModels;
+using CarJenShared.Dtos.CarDto;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Data;
 using System.Reflection;
+using static CarJenShared.Helpers.Logger;
 
 namespace CarJenData.Repositories
 {
-    public class TrimRepository
+    public static class TrimRepository
     {
-        public static bool GetTrimByID(int? trimID, ref string trim, ref int? modelID)
+        public static TrimDto? GetTrimByID(int? trimID)
         {
-            bool isFound = false;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("SP_GetTrimByID", connection))
+                using (var context = new CarJenDbContext())
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@TrimID", trimID);
-
-                    connection.Open();
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        if (reader.Read())
+                    return context.Trims
+                        .Where(t => t.TrimId == trimID)
+                        .Select(t => new TrimDto
                         {
-                            isFound = true;
-                            trim = reader["Trim"]?.ToString();
-                            modelID = reader["ModelID"] as int?;
-                        }
-                    }
+                            TrimID = t.TrimId,
+                            Trim = t.Trim1,
+                            ModelID = t.ModelId
+                        })
+                        .FirstOrDefault();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetTrimByID));
+                return null;
             }
-
-            return isFound;
         }
-
-        public static bool GetTrimIDByFullName(string trim, string model, string brand, ref int? trimID)
+        public static TrimDto? GetTrimIDByFullName(string trim, string model, string brand)
         {
-            bool isFound = false;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("SP_GetTrimIDByNameAndModelAndBrand", connection))
+                using (var context = new CarJenDbContext())
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-
-                    command.Parameters.AddWithValue("@Trim", trim);
-                    command.Parameters.AddWithValue("@Model", model);
-                    command.Parameters.AddWithValue("@Brand", brand);
-
-                    SqlParameter outputID = new SqlParameter("@TrimID", SqlDbType.Int)
-                    {
-                        Direction = ParameterDirection.Output
-                    };
-                    command.Parameters.Add(outputID);
-
-                    connection.Open();
-                    command.ExecuteNonQuery();
-
-                    trimID = command.Parameters["@TrimID"].Value != DBNull.Value
-                        ? (int?)command.Parameters["@TrimID"].Value
-                        : null;
-
-                    isFound = trimID.HasValue;
+                    return context.Trims
+                        .Where(t => t.Trim1 == trim &&
+                                    t.Model.Model1 == model &&
+                                    t.Model.Brand.Brand1 == brand)
+                        .Select(t => new TrimDto
+                        {
+                            TrimID = t.TrimId,
+                            Trim = t.Trim1,
+                            ModelID = t.ModelId
+                        })
+                        .FirstOrDefault();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
-                isFound = false;
+                LogError(ex, nameof(GetTrimIDByFullName));
+                return null;
             }
-
-            return isFound;
         }
-
-        public static DataTable GetAllTrims()
+        public static List<TrimDto> GetAllTrims()
         {
-            DataTable dt = new DataTable();
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("SP_GetAllTrims", connection))
+                using (var context = new CarJenDbContext())
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    connection.Open();
-
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        if (reader.HasRows)
-                            dt.Load(reader);
-                    }
+                    return context.Trims
+                        .Select(t => new TrimDto
+                        {
+                            TrimID = t.TrimId,
+                            Trim = t.Trim1,
+                            ModelID = t.ModelId
+                        })
+                        .ToList();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetAllTrims));
+                return new List<TrimDto>();
             }
-
-            return dt;
         }
     }
 }

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CarJenWebApi.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/Package")]
     [ApiController]
     public class PackageController : ControllerBase
     {
