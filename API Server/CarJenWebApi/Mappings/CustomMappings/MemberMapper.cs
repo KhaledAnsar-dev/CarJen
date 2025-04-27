@@ -26,7 +26,7 @@ namespace CarJenWebApi.Mappings.CustomMappings
                 TeamType = member.Team.TeamType == 1 ? "Initial Inspection Team" : "Technical Inspection Team",
                 RoleTitle = member.User.Role.roleTitle,
                 JoinDate = member.JoinDate,
-                ExitDate = Convert.ToDateTime(member.ExitDate)
+                ExitDate = member.ExitDate
             };
         }
     }

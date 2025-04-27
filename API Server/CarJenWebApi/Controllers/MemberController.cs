@@ -58,9 +58,8 @@ namespace CarJenWebApi.Controllers
 
             if (member.AddMember())
             {
-                var createdMember = clsTeamMember.Find(member.TeamMemberID);
 
-                MemberResponseDto response = MemberMapper.ToMemberResponseDto(createdMember.ToMemberDto);
+                MemberResponseDto response = MemberMapper.ToMemberResponseDto(member.ToMemberDto);
 
                 return CreatedAtRoute("GetTeamMemberByID", new { teamMemberID = response.MemberID }, response);
             }

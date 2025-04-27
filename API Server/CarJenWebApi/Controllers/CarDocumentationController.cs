@@ -57,14 +57,13 @@ namespace CarJenWebApi.Controllers
 
             if (newDoc.AddCarDocumentation())
             {
-                var createdDoc = clsCarDocumentation.Find(newDoc.CarDocumentationID);
+                var response = CarDocumentationMapper.ToCarDocResponseDto(newDoc.ToCarDocDto);
 
-                var response = CarDocumentationMapper.ToCarDocResponseDto(createdDoc.ToCarDocDto);
-
-                return CreatedAtRoute("GetCarDocumentationByID", new { carDocumentationID = createdDoc.CarDocumentationID }, response);
+                return CreatedAtRoute("GetCarDocumentationByID", new { carDocumentationID = newDoc.CarDocumentationID }, response);
             }
 
             return BadRequest("Failed to add car documentation.");
         }
+    
     }
 }

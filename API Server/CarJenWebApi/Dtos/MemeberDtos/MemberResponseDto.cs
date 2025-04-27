@@ -9,6 +9,6 @@ public class MemberResponseDto
     public string TeamType { get; set; }
     public string RoleTitle { get; set; }
     public DateTime JoinDate { get; set; }
-    public DateTime ExitDate { get; set; }
+    public DateTime? ExitDate { get; set; }
 }
 
