@@ -1,4 +1,5 @@
 ﻿using CarJenData.Repositories;
+using CarJenShared.Dtos.InspectionPaymentDtos;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +15,18 @@ namespace CarJenBusiness.ApplicationLogic
         public int? InspectionFeeID { get; set; }
         public DateTime? PaymentDate { get; set; }
         public byte? PaymentMethod { get; set; }
-
+        public InspectionPaymentDto ToInspectionPayDto
+        {
+            get
+            {
+                return new InspectionPaymentDto
+                {
+                    AppointmentID = this.AppointmentID,
+                    InspectionFeeID = this.InspectionFeeID,
+                    PaymentMethod = this.PaymentMethod,
+                };
+            }
+        }
         public enum enPaymentMethod { ElDahabia = 0, CIB = 1, Visa = 2, MasterCard = 3, Paypal = 4, Cash = 5 };
 
         public clsInspectionPayment()
@@ -28,7 +40,7 @@ namespace CarJenBusiness.ApplicationLogic
 
         public bool AddPayment()
         {
-            InspectionPaymentID = InspectionPaymentRepository.AddPayment(AppointmentID, InspectionFeeID, PaymentMethod);
+            InspectionPaymentID = InspectionPaymentRepository.AddPayment(ToInspectionPayDto);
             return InspectionPaymentID != null;
         }
 

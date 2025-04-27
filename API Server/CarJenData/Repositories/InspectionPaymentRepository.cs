@@ -1,51 +1,40 @@
 ﻿using CarJenData.DataModels;
+using CarJenShared.Dtos.InspectionPaymentDtos;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Data;
 using System.Reflection;
+using static CarJenShared.Helpers.Logger;
 
 namespace CarJenData.Repositories
 {
     public class InspectionPaymentRepository
     {
-        public static int? AddPayment(int? appointmentID, int? inspectionFeeID, byte? paymentMethod)
+        public static int? AddPayment(InspectionPaymentDto inspectionPaymentDto)
         {
-            int? createdID = null;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
+                using (var context = new CarJenDbContext())
                 {
-                    using (SqlCommand command = new SqlCommand("SP_AddInspectionPayment", connection))
+                    var payment = new InspectionPayment
                     {
-                        command.CommandType = CommandType.StoredProcedure;
+                        AppointmentId = inspectionPaymentDto.AppointmentID?? 0,
+                        InspectionFeeId = inspectionPaymentDto.InspectionFeeID ?? 0,
+                        PaymentDate = DateTime.Now,
+                        PaymentMethod = inspectionPaymentDto.PaymentMethod ?? 0
+                    };
 
-                        command.Parameters.AddWithValue("@AppointmentID", appointmentID);
-                        command.Parameters.AddWithValue("@InspectionFeeID", inspectionFeeID);
-                        command.Parameters.AddWithValue("@PaymentDate", DateTime.Now);
-                        command.Parameters.AddWithValue("@PaymentMethod", paymentMethod);
+                    context.InspectionPayments.Add(payment);
+                    context.SaveChanges();
 
-                        SqlParameter outputID = new SqlParameter("@InspectionPaymentID", SqlDbType.Int)
-                        {
-                            Direction = ParameterDirection.Output
-                        };
-
-                        command.Parameters.Add(outputID);
-
-                        connection.Open();
-
-                        command.ExecuteNonQuery();
-                        createdID = (int)command.Parameters["@InspectionPaymentID"].Value;
-                    }
+                    return payment.InspectionPaymentId;
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(AddPayment));
+                return null;
             }
-
-            return createdID;
         }
     }
 }
