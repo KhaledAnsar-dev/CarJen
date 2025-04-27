@@ -1,4 +1,5 @@
 ﻿using CarJenData.Repositories;
+using CarJenShared.Dtos.AppointmentDtos;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -19,6 +20,23 @@ namespace CarJenBusiness.ApplicationLogic
         public clsCarDocumentation CarDocumentaion { get; set; }
         public clsFees PublishFee { get; set; }
 
+        public AppointmentDto ToAppointmentDto
+        {
+            get
+            {
+                return new AppointmentDto
+                {
+                    AppointmentID = AppointmentID,
+                    PublishFee = (decimal)this.PublishFee.Amount,
+                    PublishFeeID = this.PublishFeeID,
+                    CarDocumentationID = this.CarDocumentationID,
+                    Status = this.GetStatusText(),
+                    AppointmentDate = this.AppointmentDate,
+                    CarDocumentation = this.CarDocumentaion.ToCarDocDto
+                };
+            }
+        }
+
         static readonly Dictionary<short?, string> _StatusText = new Dictionary<short?, string>
         {
             {0, "Scheduled"},
@@ -27,6 +45,7 @@ namespace CarJenBusiness.ApplicationLogic
             {3, "Rejected"},
             {4, "Cancelled"}
         };
+        
         public string GetStatusText()
         {
             if (_StatusText.TryGetValue(Status, out string text))
@@ -53,15 +72,18 @@ namespace CarJenBusiness.ApplicationLogic
             Cancelled = 4
         }
 
-        private clsAppointment(int? appointmentID, int? publishFeeID, int? carDocumentationID, short? status, DateTime? appointmentDate, DateTime? createdDate)
+        private clsAppointment(AppointmentDto appointmentDto)
         {
-            AppointmentID = appointmentID;
-            PublishFeeID = publishFeeID;
-            CarDocumentationID = carDocumentationID;
-            Status = status;
-            AppointmentDate = appointmentDate;
-            CreatedDate = createdDate;
-            CarDocumentaion = clsCarDocumentation.Find(CarDocumentationID);
+            AppointmentID = appointmentDto.AppointmentID;
+            PublishFeeID = appointmentDto.PublishFeeID;
+            CarDocumentationID = appointmentDto.CarDocumentationID;
+
+            // Get status number using value
+            Status = _StatusText.FirstOrDefault(s => s.Value == appointmentDto.Status).Key;
+
+            AppointmentDate = appointmentDto.AppointmentDate;
+            CreatedDate = appointmentDto.AppointmentDate;
+            CarDocumentaion = clsCarDocumentation.Find(appointmentDto.CarDocumentationID);
             PublishFee = clsFees.Find(clsFees.enFeeType.PublishingFee);
             Mode = enMode.Update;
         }
@@ -78,50 +100,36 @@ namespace CarJenBusiness.ApplicationLogic
         }
 
 
-        //private bool _AddAppointment()
-        //{
-        //    this.AppointmentID = clsAppointmentData.AddAppointment(CarDocumentationID, Status, AppointmentDate);
-        //    return this.AppointmentID != null;
-        //}
-        //private bool _UpdateAppointment()
-        //{
-        //    return clsAppointmentData.ApproveAppointment(AppointmentID, Status, AppointmentDate); ;
-        //}
-
-        public static bool UpdateStatus(int AppointmentID, short Status)
+        public bool _AddAppointment()
         {
-            return AppointmentRepository.UpdateAppointmentStatus(AppointmentID, Status);
+            this.AppointmentID = AppointmentRepository.AddAppointment(CarDocumentationID,AppointmentDate);
+            return this.AppointmentID != null;
         }
         public static bool UpdatePublishFee(int AppointmentID)
         {
             int? publishFeeID = clsFees.Find(clsFees.enFeeType.PublishingFee).FeeID;
             return AppointmentRepository.UpdatePublishFee(AppointmentID, publishFeeID);
         }
-        static public clsAppointment Find(int? AppointmentID)
+        public static bool UpdateStatus(int AppointmentID, short Status)
         {
-            int? PublishFeeID = null; int? CarDocumentationID = null; short? Status = null;
-            DateTime? AppointmentDate = null; DateTime? CreatedDate = null;
-
-
-            if (AppointmentRepository.GetAppointmentByID(AppointmentID, ref PublishFeeID,
-                   ref CarDocumentationID, ref Status, ref AppointmentDate, ref CreatedDate))
+            return AppointmentRepository.UpdateAppointmentStatus(AppointmentID, Status);
+        }
+        static public clsAppointment? Find(int? AppointmentID)
+        {
+            var appointmentDto = AppointmentRepository.GetAppointmentByID(AppointmentID);
+            if(appointmentDto != null)
             {
-                return new clsAppointment(AppointmentID, PublishFeeID, CarDocumentationID, Status, AppointmentDate, CreatedDate);
+                return new clsAppointment(appointmentDto);
             }
             else
                 return null;
-
         }
-        static public clsAppointment FindByCarDocID(int? CarDocumentationID)
+        static public clsAppointment? FindByCarDocID(int? CarDocumentationID)
         {
-            int? AppointmentID = null; int? PublishFeeID = null; short? Status = null;
-            DateTime? AppointmentDate = null; DateTime? CreatedDate = null;
-
-
-            if (AppointmentRepository.GetAppointmentByCarDocID(ref AppointmentID, ref PublishFeeID,
-                    CarDocumentationID, ref Status, ref AppointmentDate, ref CreatedDate))
+            var appointmentDto = AppointmentRepository.GetAppointmentByCarDocID(CarDocumentationID);
+            if (appointmentDto != null)
             {
-                return new clsAppointment(AppointmentID, PublishFeeID, CarDocumentationID, Status, AppointmentDate, CreatedDate);
+                return new clsAppointment(appointmentDto);
             }
             else
                 return null;
@@ -132,7 +140,7 @@ namespace CarJenBusiness.ApplicationLogic
             return AppointmentRepository.Delete(AppointmentID);
         }
 
-        static public DataTable GetAllAppointments()
+        static public List<AppointmentDto> GetAllAppointments()
         {
             return AppointmentRepository.GetAllAppointments();
         }
@@ -140,14 +148,14 @@ namespace CarJenBusiness.ApplicationLogic
         {
             return AppointmentRepository.IsAppointmentExist(AppointmentID);
         }
-        static public int GetAppointmentID(int CarDocumentationID)
+        static public int? GetAppointmentID(int CarDocumentationID)
         {
             return AppointmentRepository.GetAppointmentIDByCarDocID(CarDocumentationID);
         }
-        static public DataTable GetAllPreApprovedCars()
-        {
-            return AppointmentRepository.GetAllPreApprovedCars();
-        }
+        //static public DataTable GetAllPreApprovedCars()
+        //{
+        //    return AppointmentRepository.GetAllPreApprovedCars();
+        //}
 
     }
 

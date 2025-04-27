@@ -1,311 +1,306 @@
 ﻿using CarJenData.DataModels;
+using CarJenShared.Dtos.AppointmentDtos;
+using CarJenShared.Dtos.CarDocumentationDtos;
+using CarJenShared.Dtos.CarDtos;
+using CarJenShared.Dtos.PersonDtos;
+using CarJenShared.Dtos.SellerDtos;
 using Microsoft.Data.SqlClient; 
 using System;
 using System.Data;
-using System.Reflection;
+using static CarJenShared.Helpers.Logger;
 
 namespace CarJenData.Repositories
 {
     public class AppointmentRepository
     {
-        static public bool GetAppointmentByID(int? AppointmentID, ref int? PublishFeeID, ref int? CarDocumentationID, ref short? Status, ref DateTime? AppointmentDate, ref DateTime? CreatedDate)
+        public static AppointmentDto? GetAppointmentByID(int? appointmentID)
         {
-            bool IsFound = false;
-
             try
             {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_GetAppointmentByID", Connection))
+                using (var context = new CarJenDbContext())
                 {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Connection.Open();
-                    Command.Parameters.AddWithValue("@AppointmentID", AppointmentID);
-
-                    using (SqlDataReader Reader = Command.ExecuteReader())
-                    {
-                        if (Reader.Read())
+                    return context.Appointments
+                        .Where(a => a.AppointmentId == appointmentID)
+                        .Select(a => new AppointmentDto
                         {
-                            IsFound = true;
-                            PublishFeeID = Convert.ToInt32(Reader["fee"]);
-                            CarDocumentationID = Convert.ToInt32(Reader["CarDocumentationID"]);
-                            Status = Convert.ToInt16(Reader["Status"]);
-                            AppointmentDate = Convert.ToDateTime(Reader["AppointmentDate"]);
-                            CreatedDate = Convert.ToDateTime(Reader["CreatedDate"]);
-                        }
-                    }
+                            AppointmentID = a.AppointmentId,
+                            CarDocumentationID = a.CarDocumentationId,
+                            CarDocumentation = new CarDocumentationDto
+                            {
+                                Seller = new SellerDto
+                                {
+                                    SellerId = a.CarDocumentation.Seller.SellerId,
+                                    Person = new PersonDto
+                                    {
+                                        FirstName = a.CarDocumentation.Seller.Person.FirstName,
+                                        MiddleName = a.CarDocumentation.Seller.Person.MiddleName,
+                                        LastName = a.CarDocumentation.Seller.Person.LastName
+                                    }
+                                },
+                                Car = new CarDto
+                                {
+                                    CarID = a.CarDocumentation.Car.CarId
+                                }
+                            },
+                            Status = a.Status == 0 ? "Scheduled" :
+                                     a.Status == 1 ? "Under Inspection" :
+                                     a.Status == 2 ? "Approved" :
+                                     a.Status == 3 ? "Rejected" : "Cancelled",
+                            AppointmentDate = a.AppointmentDate,
+                            PublishFee = a.PublishFeeId.HasValue ? a.PublishFee.Amount : 0
+                        })
+                        .FirstOrDefault();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetAppointmentByID));
+                return null;
             }
-
-            return IsFound;
         }
-
-        static public bool GetAppointmentByCarDocID(ref int? AppointmentID, ref int? PublishFeeID, int? CarDocumentationID, ref short? Status, ref DateTime? AppointmentDate, ref DateTime? CreatedDate)
+        public static AppointmentDto? GetAppointmentByCarDocID(int? carDocumentationID)
         {
-            bool IsFound = false;
-
             try
             {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_GetAppointmentByCarDocID", Connection))
+                using (var context = new CarJenDbContext())
                 {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Connection.Open();
-                    Command.Parameters.AddWithValue("@CarDocumentationID", CarDocumentationID);
-
-                    using (SqlDataReader Reader = Command.ExecuteReader())
-                    {
-                        if (Reader.Read())
+                    return context.Appointments
+                        .Where(a => a.CarDocumentationId == carDocumentationID && a.Status != 4)
+                        .Select(a => new AppointmentDto
                         {
-                            IsFound = true;
-                            PublishFeeID = (Reader["PublishFeeID"] == DBNull.Value) ? 0 : Convert.ToInt32(Reader["PublishFeeID"]);
-                            AppointmentID = Convert.ToInt32(Reader["AppointmentID"]);
-                            Status = Convert.ToInt16(Reader["Status"]);
-                            AppointmentDate = Convert.ToDateTime(Reader["AppointmentDate"]);
-                            CreatedDate = Convert.ToDateTime(Reader["CreatedDate"]);
-                        }
-                    }
+                            AppointmentID = a.AppointmentId,
+                            CarDocumentationID = a.CarDocumentationId,
+                            CarDocumentation = new CarDocumentationDto
+                            {
+                                Seller = new SellerDto
+                                {
+                                    SellerId = a.CarDocumentation.Seller.SellerId,
+                                    Person = new PersonDto
+                                    {
+                                        FirstName = a.CarDocumentation.Seller.Person.FirstName,
+                                        MiddleName = a.CarDocumentation.Seller.Person.MiddleName,
+                                        LastName = a.CarDocumentation.Seller.Person.LastName
+                                    }
+                                },
+                                Car = new CarDto
+                                {
+                                    CarID = a.CarDocumentation.Car.CarId
+                                }
+                            },
+                            Status = a.Status == 0 ? "Scheduled" :
+                                     a.Status == 1 ? "Under Inspection" :
+                                     a.Status == 2 ? "Approved" :
+                                     a.Status == 3 ? "Rejected" : "Cancelled",
+                            AppointmentDate = a.AppointmentDate,
+                            PublishFee = a.PublishFeeId.HasValue ? a.PublishFee.Amount : 0
+                        })
+                        .FirstOrDefault();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetAppointmentByCarDocID));
+                return null;
             }
-
-            return IsFound;
         }
-
-        static public int? AddAppointment(int? CarDocumentationID, int? Status, DateTime? AppointmentDate)
+        public static int? AddAppointment(int? carDocumentationID, DateTime? appointmentDate)
         {
-            int? CreatedID = null;
-
             try
             {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_AddAppointment", Connection))
+                using (var context = new CarJenDbContext())
                 {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Command.Parameters.AddWithValue("@PublishFeeID", DBNull.Value);
-                    Command.Parameters.AddWithValue("@CarDocumentationID", CarDocumentationID);
-                    Command.Parameters.AddWithValue("@Status", Status);
-                    Command.Parameters.AddWithValue("@AppointmentDate", AppointmentDate);
-
-                    SqlParameter OutputID = new SqlParameter("@AppointmentID", SqlDbType.Int)
+                    var appointment = new Appointment
                     {
-                        Direction = ParameterDirection.Output,
+                        CarDocumentationId = carDocumentationID ?? 0,
+                        Status = 0, // Scheduled
+                        AppointmentDate = Convert.ToDateTime(appointmentDate),
+                        CreatedDate = DateTime.Now,
+                        PublishFeeId = null
                     };
-                    Command.Parameters.Add(OutputID);
 
-                    Connection.Open();
-                    Command.ExecuteNonQuery();
-                    CreatedID = (int)Command.Parameters["@AppointmentID"].Value;
+                    context.Appointments.Add(appointment);
+                    context.SaveChanges();
+
+                    return appointment.AppointmentId;
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(AddAppointment));
+                return null;
             }
-
-            return CreatedID;
         }
-
-        static public bool UpdateAppointmentStatus(int? AppointmentID, short? Status)
+        public static bool UpdateAppointmentStatus(int? appointmentID, short? status)
         {
-            int RowAffected = 0;
-
             try
             {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_UpdateAppointmentStatus", Connection))
+                using (var context = new CarJenDbContext())
                 {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Command.Parameters.AddWithValue("@AppointmentID", AppointmentID);
-                    Command.Parameters.AddWithValue("@Status", Status);
+                    var appointment = context.Appointments.Find(appointmentID);
 
-                    Connection.Open();
-                    RowAffected = Command.ExecuteNonQuery();
+                    if (appointment == null)
+                        return false;
+
+                    appointment.Status = (byte)status;
+                    context.SaveChanges();
+                    return true;
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(UpdateAppointmentStatus));
+                return false;
             }
-
-            return RowAffected > 0;
         }
-
-        static public bool UpdatePublishFee(int? AppointmentID, int? publishFeeID)
+        public static bool UpdatePublishFee(int? appointmentID, int? publishFeeID)
         {
-            int RowAffected = 0;
-
             try
             {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_UpdatePublishFee", Connection))
+                using (var context = new CarJenDbContext())
                 {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Command.Parameters.AddWithValue("@AppointmentID", AppointmentID);
-                    Command.Parameters.AddWithValue("@publishFeeID", publishFeeID);
+                    var appointment = context.Appointments.Find(appointmentID);
 
-                    Connection.Open();
-                    RowAffected = Command.ExecuteNonQuery();
+                    if (appointment == null)
+                        return false;
+
+                    appointment.PublishFeeId = publishFeeID;
+                    context.SaveChanges();
+                    return true;
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(UpdatePublishFee));
+                return false;
             }
-
-            return RowAffected > 0;
         }
-
-        static public DataTable GetAllAppointments()
+        public static List<AppointmentDto> GetAllAppointments()
         {
-            DataTable dt = new DataTable();
-
             try
             {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_GetAllAppointments", Connection))
+                using (var context = new CarJenDbContext())
                 {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Connection.Open();
-
-                    using (SqlDataReader reader = Command.ExecuteReader())
-                    {
-                        if (reader.HasRows)
-                            dt.Load(reader);
-                    }
+                    return context.Appointments
+                        .Select(a => new AppointmentDto
+                        {
+                            AppointmentID = a.AppointmentId,
+                            CarDocumentationID = a.CarDocumentationId,
+                            CarDocumentation = new CarDocumentationDto
+                            {
+                                Seller = new SellerDto
+                                {
+                                    SellerId = a.CarDocumentation.Seller.SellerId,
+                                    Person = new PersonDto
+                                    {
+                                        FirstName = a.CarDocumentation.Seller.Person.FirstName,
+                                        MiddleName = a.CarDocumentation.Seller.Person.MiddleName,
+                                        LastName = a.CarDocumentation.Seller.Person.LastName
+                                    }                                    
+                                },
+                                Car = new CarDto
+                                {
+                                    CarID = a.CarDocumentation.Car.CarId
+                                }
+                            },
+                            Status = a.Status == 0 ? "Scheduled" :
+                                     a.Status == 1 ? "Under Inspection" :
+                                     a.Status == 2 ? "Approved" :
+                                     a.Status == 3 ? "Rejected" : "Cancelled",
+                            AppointmentDate = a.AppointmentDate,
+                            PublishFee = a.PublishFeeId.HasValue ? a.PublishFee.Amount : 0
+                        })
+                        .ToList();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetAllAppointments));
+                return new List<AppointmentDto>();
             }
-
-            return dt;
         }
-
-        public static bool IsAppointmentExist(int AppointmentID)
+        public static bool IsAppointmentExist(int appointmentID)
         {
-            bool isFound = false;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("SP_IsAppointmentExist", connection))
+                using (var context = new CarJenDbContext())
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@AppointmentID", AppointmentID);
-                    connection.Open();
-
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        isFound = reader.HasRows;
-                    }
+                    return context.Appointments.Any(a => a.AppointmentId == appointmentID);
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(IsAppointmentExist));
+                return false;
             }
-
-            return isFound;
         }
-
-        public static int GetAppointmentIDByCarDocID(int CarDocumentationID)
+        public static int? GetAppointmentIDByCarDocID(int carDocumentationID)
         {
-            int? CreatedID = null;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand command = new SqlCommand("SP_GetAppointmentIDByCarDocID", connection))
+                using (var context = new CarJenDbContext())
                 {
-                    command.CommandType = CommandType.StoredProcedure;
-                    command.Parameters.AddWithValue("@CarDocumentationID", CarDocumentationID);
-
-                    SqlParameter OutputID = new SqlParameter("@AppointmentID", SqlDbType.Int)
-                    {
-                        Direction = ParameterDirection.Output
-                    };
-                    command.Parameters.Add(OutputID);
-
-                    connection.Open();
-                    command.ExecuteNonQuery();
-                    CreatedID = (int)command.Parameters["@AppointmentID"].Value;
+                    return context.Appointments
+                        .Where(a => a.CarDocumentationId == carDocumentationID)
+                        .Select(a => a.AppointmentId)
+                        .FirstOrDefault();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetAppointmentIDByCarDocID));
+                return null;
             }
-
-            return CreatedID.Value;
         }
-
-        static public bool Delete(int AppointmentID)
+        public static bool Delete(int appointmentID)
         {
-            int RowAffected = 0;
-
             try
             {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_DeleteAppointment", Connection))
+                using (var context = new CarJenDbContext())
                 {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Command.Parameters.AddWithValue("@AppointmentID", AppointmentID);
+                    var appointment = context.Appointments.Find(appointmentID);
 
-                    Connection.Open();
-                    RowAffected = Command.ExecuteNonQuery();
+                    if (appointment == null)
+                        return false;
+
+                    context.Appointments.Remove(appointment);
+                    context.SaveChanges();
+                    return true;
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(Delete));
+                return false;
             }
-
-            return RowAffected > 0;
-        }
-
-        static public DataTable GetAllPreApprovedCars()
-        {
-            DataTable dt = new DataTable();
-
-            try
-            {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_GetAllPreApprovedCars", Connection))
-                {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Connection.Open();
-
-                    using (SqlDataReader reader = Command.ExecuteReader())
-                    {
-                        if (reader.HasRows)
-                            dt.Load(reader);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
-            }
-
-            return dt;
         }
     }
 }
+
+
+//static public DataTable GetAllPreApprovedCars()
+//{
+//    DataTable dt = new DataTable();
+
+//    try
+//    {
+//        using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
+//        using (SqlCommand Command = new SqlCommand("SP_GetAllPreApprovedCars", Connection))
+//        {
+//            Command.CommandType = CommandType.StoredProcedure;
+//            Connection.Open();
+
+//            using (SqlDataReader reader = Command.ExecuteReader())
+//            {
+//                if (reader.HasRows)
+//                    dt.Load(reader);
+//            }
+//        }
+//    }
+//    catch (Exception ex)
+//    {
+//        // string methodName = MethodBase.GetCurrentMethod().Name;
+//        // clsEventLogger.LogError(ex.Message, methodName);
+//    }
+
+//    return dt;
+//}
