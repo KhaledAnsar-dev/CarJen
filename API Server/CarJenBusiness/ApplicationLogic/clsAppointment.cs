@@ -1,5 +1,6 @@
 ﻿using CarJenData.Repositories;
 using CarJenShared.Dtos.AppointmentDtos;
+using CarJenShared.Dtos.CarInspectionDtos;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -152,10 +153,19 @@ namespace CarJenBusiness.ApplicationLogic
         {
             return AppointmentRepository.GetAppointmentIDByCarDocID(CarDocumentationID);
         }
-        //static public DataTable GetAllPreApprovedCars()
-        //{
-        //    return AppointmentRepository.GetAllPreApprovedCars();
-        //}
+
+
+        /// <summary>
+        /// Retrieves all vehicles that have passed the preliminary approval phase
+        /// and are now ready for the full technical inspection.
+        /// These vehicles have not yet undergone the detailed inspection process.
+        /// </summary>
+        /// <returns>A List<CarInspectionDto> containing all vehicles pending technical inspection.</returns>
+        public static List<PendingTechnicalInspectionCarDto> GetCarsReadyForTechnicalInspection()
+        {
+            return AppointmentRepository.GetCarsReadyForTechnicalInspection();
+        }
+
 
     }
 

@@ -1,59 +1,26 @@
-﻿using CarJenBusiness.Inspections;
+﻿using CarJenBusiness.ApplicationLogic;
+using CarJenBusiness.Inspections;
 using CarJenBusiness.Interfaces;
+using CarJenData.DataModels;
 using CarJenData.Repositories;
+using CarJenShared.Dtos.CarDocumentationDtos;
+using CarJenShared.Dtos.CarInspectionDtos;
+using CarJenShared.Dtos.ReportDtos;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CarJenBusiness.ApplicationLogic
+namespace CarJenBusiness
 {
     public class clsCarInspection
     {
         public int? CarInspectionID { get; set; }
-        public int? TeamID { get; set; }
-        public int? CarDocumentationID { get; set; }
         public short? Status { get; set; }
-        public DateTime? ExpDate { get; set; }
-
-        // Dictionary to store all inspection IDs from the database, filtered by the current CarInspectionID.
-        // This helps in mapping each inspection to its corresponding data.
-        private Dictionary<string, int> inspectionsIDs = new Dictionary<string, int>();
-
-
-        // Dictionary to contain all inspection objects, enabling retrieval of their results. 
-        // Note: Both dictionaries share a common key, which is the inspection name.
-        // This allows linking an inspection ID to its corresponding inspection object. 
-        public Dictionary<string, IPrimaryInspectionData> inspections = new Dictionary<string, IPrimaryInspectionData>()
-        {
-            {new clsEngineSounds().Name,new clsEngineSounds()},
-            {new clsEngineVibrations().Name,new clsEngineVibrations()},
-            {new clsEngineAuthenticities().Name,new clsEngineAuthenticities()},
-            {new clsBrakePads().Name,new clsBrakePads()},
-            {new clsBrakePipes().Name,new clsBrakePipes()},
-            {new clsBrakeRotors().Name,new clsBrakeRotors()},
-            {new clsPaintConditions().Name,new clsPaintConditions()},
-            {new clsBodyConditions().Name,new clsBodyConditions()},
-            {new clsFrontLights().Name,new clsFrontLights()},
-            {new clsRearLights().Name,new clsRearLights()},
-            {new clsElectricalCharging().Name,new clsElectricalCharging()},
-            {new clsElectricalWiring().Name,new clsElectricalWiring()},
-            {new clsEngineTemperatures().Name,new clsEngineTemperatures()},
-            {new clsCoolingConditions().Name,new clsCoolingConditions()},
-            {new clsHeatingConditions().Name,new clsHeatingConditions()},
-            {new clsAirbagConditions().Name,new clsAirbagConditions()},
-            {new clsTireDepths().Name,new clsTireDepths()},
-            {new clsTirePressures().Name,new clsTirePressures()},
-            {new clsEngineOilLeakages().Name,new clsEngineOilLeakages()},
-            {new clsCoolantLeakages().Name,new clsCoolantLeakages()},
-            {new clsBrakeFluidLeakages().Name,new clsBrakeFluidLeakages()}
-        };
-
-        enum enMode { Add = 0, Update = 1 };
-        enMode Mode;
-
+        public int? CarDocumentationID { get; set; }
         public enum enStatus
         {
             Pending = 0,
@@ -63,115 +30,52 @@ namespace CarJenBusiness.ApplicationLogic
             Failed = 4,
             Cancelled = 5
         };
-        public enum enCondition { Normal = 1, Acceptable = 2, Bad = 3 }
-        private clsCarInspection(int? carInspectionID, int? teamID, int? carDocumentationID, short? status, DateTime? expDate)
+
+
+        /// <summary>
+        /// Creates an initial car inspection record without any detailed inspections.
+        /// This is used to register a vehicle as ready to be inspected.
+        /// </summary>
+        public bool CreateInitialCarInspection()
         {
-            CarInspectionID = carInspectionID;
-            TeamID = teamID;
-            CarDocumentationID = carDocumentationID;
-            Status = status;
-            ExpDate = expDate;
-
-
-            // Retrieve all inspection IDs from their respective tables, allowing us to fetch their complete data later. 
-            inspectionsIDs = FindReportInspectionIDs(CarInspectionID);
-
-
-            foreach (var inspection in inspectionsIDs)
-            {
-                // Retrieve the appropriate inspection object using its corresponding key. 
-                if (inspections.TryGetValue(inspection.Key, out var foundedInspect))
-                {
-                    // Retrieve actual inspection data from the database and populate the corresponding empty objects 
-                    inspections[inspection.Key] = foundedInspect.Find(inspection.Value);
-                }
-            }
-
-            Mode = enMode.Update;
-        }
-        public clsCarInspection()
-        {
-            CarInspectionID = null;
-            TeamID = null;
-            CarDocumentationID = null;
-            Status = null;
-            ExpDate = null;
-
-            Mode = enMode.Add;
-        }
-
-        private bool _AddCarInspection()
-        {
-            this.CarInspectionID = CarInspectionRepository.AddCarInspection(CarDocumentationID, Status);
+            this.CarInspectionID = CarInspectionRepository.CreateInitialCarInspection(CarDocumentationID, Status);
             return this.CarInspectionID != null;
         }
-        private bool _UpdateCarInspection()
+
+        /// <summary>
+        /// Adds a batch of inspection items related to a specific car inspection.
+        /// These items are stored as a pre-approved report (not final).
+        /// </summary>
+        /// <returns>True if the batch was saved successfully.</returns>
+        public static bool AddCarInspectionBatch(InspectionBatchDto inspectionBatch)
         {
-            return CarInspectionRepository.UpdateCarInspection(CarInspectionID, TeamID, Status);
-        }
-        public bool Save()
-        {
-            switch (Mode)
+            // Convert the list of inspections to a DataTable to match the repository input format
+            // and prepare it for batch insertion.
+
+            var table = new DataTable();
+            table.Columns.Add("Name", typeof(string)).MaxLength = 50;
+            table.Columns.Add("Condition", typeof(short));
+            table.Columns.Add("Recommendation", typeof(string)).MaxLength = 250;
+
+            foreach (var inspection in inspectionBatch.Inspections)
             {
-                case enMode.Add:
-                    if (_AddCarInspection())
-                    {
-                        Mode = enMode.Update;
-                        return true;
-                    }
-                    else
-                    {
-                        return false;
-                    }
-
-                case enMode.Update:
-
-                    return _UpdateCarInspection();
-
+                table.Rows.Add(inspection.Name, inspection.Condition, inspection.Recommendation);
             }
-            return false;
+
+            return CarInspectionRepository.AddCarInspectionBatch(table, inspectionBatch.Resume, (int)inspectionBatch.CarInspectionID);
+        }
+        static public List<InspectionDto> GetCarInspectionBatch(int? CarInspectionID)
+        {
+            return CarInspectionRepository.GetCarInspectionBatch(CarInspectionID);
         }
         public static bool UpdateStatus(int CarInspectionID, short Status)
         {
             return CarInspectionRepository.UpdateCarInspectionStatus(CarInspectionID, Status); ;
         }
-        static public clsCarInspection Find(int? CarInspectionID)
-        {
-            int? TeamID = null;
-            int? CarDocumentationID = null;
-            short? Status = null;
-            DateTime? ExpDate = null;
-
-            if (CarInspectionRepository.GetCarInspectionByID(CarInspectionID, ref TeamID,
-                   ref CarDocumentationID, ref Status, ref ExpDate))
-            {
-                return new clsCarInspection(CarInspectionID, TeamID, CarDocumentationID, Status, ExpDate);
-            }
-            else
-                return null;
-
-        }
         static public bool Cancel(int CarInspectionID)
         {
             return UpdateStatus(CarInspectionID, (short)enStatus.Cancelled);
         }
-
-        static public DataTable GetAllReports()
-        {
-            return CarInspectionRepository.GetAllReports();
-        }
-        public static Dictionary<string, int> FindReportInspectionIDs(int? carInspectionID)
-        {
-            Dictionary<string, int> report = new Dictionary<string, int>();
-
-            return CarInspectionRepository.GetInspectionIDsForReport(carInspectionID, report) ? report : null;
-        }
-        static public string FindResumeByCarInspectionID(int? carInspectionID)
-        {
-            string resume = "";
-            return CarInspectionRepository.GetResumeByCarInspectionID(carInspectionID, ref resume) ? resume : null;
-        }
-
     }
-
 }
+

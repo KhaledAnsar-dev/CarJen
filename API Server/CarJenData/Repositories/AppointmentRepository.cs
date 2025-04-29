@@ -2,6 +2,7 @@
 using CarJenShared.Dtos.AppointmentDtos;
 using CarJenShared.Dtos.CarDocumentationDtos;
 using CarJenShared.Dtos.CarDtos;
+using CarJenShared.Dtos.CarInspectionDtos;
 using CarJenShared.Dtos.PersonDtos;
 using CarJenShared.Dtos.SellerDtos;
 using Microsoft.Data.SqlClient; 
@@ -273,34 +274,36 @@ namespace CarJenData.Repositories
                 return false;
             }
         }
+        static public List<PendingTechnicalInspectionCarDto> GetCarsReadyForTechnicalInspection()
+        {
+            try
+            {
+                using (var context = new CarJenDbContext())
+                {
+                    return context.PreApprovedCarsViews
+                        .Select(v => new PendingTechnicalInspectionCarDto
+                        {
+                            CarInspectionID = v.FileId,
+                            CarOwner = v.CarOwner,
+                            Brand = v.Brand,
+                            Model = v.Model,
+                            Trim = v.Trim,
+                            Year = v.Year,
+                            Fuel = v.Fuel,
+                            Status = v.Status
+                        })
+                        .ToList(); ;
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError(ex, nameof(GetCarsReadyForTechnicalInspection));
+                return null;
+            }
+        }
+
+
     }
 }
 
 
-//static public DataTable GetAllPreApprovedCars()
-//{
-//    DataTable dt = new DataTable();
-
-//    try
-//    {
-//        using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-//        using (SqlCommand Command = new SqlCommand("SP_GetAllPreApprovedCars", Connection))
-//        {
-//            Command.CommandType = CommandType.StoredProcedure;
-//            Connection.Open();
-
-//            using (SqlDataReader reader = Command.ExecuteReader())
-//            {
-//                if (reader.HasRows)
-//                    dt.Load(reader);
-//            }
-//        }
-//    }
-//    catch (Exception ex)
-//    {
-//        // string methodName = MethodBase.GetCurrentMethod().Name;
-//        // clsEventLogger.LogError(ex.Message, methodName);
-//    }
-
-//    return dt;
-//}

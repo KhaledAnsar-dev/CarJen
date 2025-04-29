@@ -1,50 +1,15 @@
 ﻿using CarJenData.DataModels;
+using CarJenShared.Dtos.CarInspectionDtos;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Reflection;
-
+using static CarJenShared.Helpers.Logger;
 namespace CarJenData.Repositories
 {
     public class CarInspectionRepository
     {
-        public static bool GetCarInspectionByID(int? CarInspectionID, ref int? TeamID, ref int? CarDocumentationID, ref short? Status, ref DateTime? ExpDate)
-        {
-            bool IsFound = false;
-
-            try
-            {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_GetCarInspectionByID", Connection))
-                {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Connection.Open();
-                    Command.Parameters.AddWithValue("@CarInspectionID", CarInspectionID);
-
-                    using (SqlDataReader Reader = Command.ExecuteReader())
-                    {
-                        if (Reader.Read())
-                        {
-                            IsFound = true;
-
-                            TeamID = Reader["TeamID"] != DBNull.Value ? Convert.ToInt32(Reader["TeamID"]) : (int?)null;
-                            CarDocumentationID = Convert.ToInt32(Reader["CarDocumentationID"]);
-                            Status = Convert.ToInt16(Reader["Status"]);
-                            ExpDate = Reader["ExpDate"] != DBNull.Value ? Convert.ToDateTime(Reader["ExpDate"]) : (DateTime?)null;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
-            }
-
-            return IsFound;
-        }
-        public static int? AddCarInspection(int? CarDocumentationID, short? Status)
+        public static int? CreateInitialCarInspection(int? CarDocumentationID, short? Status)
         {
             int? CreatedID = null;
 
@@ -77,36 +42,6 @@ namespace CarJenData.Repositories
 
             return CreatedID;
         }
-
-        public static bool UpdateCarInspection(int? CarInspectionID, int? TeamID, short? Status)
-        {
-            int RowAffected = 0;
-
-            try
-            {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_UpdateCarInspection", Connection))
-                {
-                    Command.CommandType = CommandType.StoredProcedure;
-
-                    Command.Parameters.AddWithValue("@CarInspectionID", CarInspectionID);
-                    Command.Parameters.AddWithValue("@TeamID", TeamID);
-                    Command.Parameters.AddWithValue("@ExpDate", DateTime.Now.AddMonths(3));
-                    Command.Parameters.AddWithValue("@Status", Status);
-
-                    Connection.Open();
-                    RowAffected = Command.ExecuteNonQuery();
-                }
-            }
-            catch (Exception ex)
-            {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
-            }
-
-            return RowAffected > 0;
-        }
-
         public static bool UpdateCarInspectionStatus(int? CarInspectionID, short? Status)
         {
             int RowAffected = 0;
@@ -133,144 +68,69 @@ namespace CarJenData.Repositories
 
             return RowAffected > 0;
         }
-
-        public static DataTable GetAllReports()
+        public static bool AddCarInspectionBatch(DataTable report, string resume, int carInspectionID)
         {
-            DataTable dt = new DataTable();
+            bool isSaved = false;
 
             try
             {
+                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
+                using (SqlCommand command = new SqlCommand("SP_SaveInspections", connection))
+                {
+                    command.CommandType = CommandType.StoredProcedure;
+                    command.Parameters.AddWithValue("@CarInspectionID", carInspectionID);
+                    command.Parameters.AddWithValue("@InspectionsType", report);
+                    command.Parameters.AddWithValue("@Resume", resume);
+
+                    connection.Open();
+                    command.ExecuteNonQuery();
+
+                    isSaved = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                // string methodName = MethodBase.GetCurrentMethod().Name;
+                // clsEventLogger.LogError(ex.Message, methodName);
+            }
+
+            return isSaved;
+        } 
+        static public List<InspectionDto> GetCarInspectionBatch(int? CarInspectionID)
+        {
+            List<InspectionDto> inspections = new List<InspectionDto>();
+
+            try
+            {
+
                 using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_GetAllReports", Connection))
+                using (SqlCommand Command = new SqlCommand("SP_GetCarInspectionBatch", Connection))
                 {
                     Command.CommandType = CommandType.StoredProcedure;
                     Connection.Open();
 
                     using (SqlDataReader reader = Command.ExecuteReader())
                     {
-                        if (reader.HasRows)
-                            dt.Load(reader);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
-            }
-
-            return dt;
-        }
-
-        public static bool GetInspectionIDsForReport(int? carInspectionID, Dictionary<string, int> report)
-        {
-            bool IsFound = false;
-
-            try
-            {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_GetInspectionIDsForReport", Connection))
-                {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Connection.Open();
-                    Command.Parameters.AddWithValue("@carInspectionID", carInspectionID);
-
-                    using (SqlDataReader Reader = Command.ExecuteReader())
-                    {
-                        if (Reader.Read())
+                        while (reader.Read())
                         {
-                            IsFound = true;
-                            for (int i = 0; i < Reader.FieldCount; i++)
+                            var inspection = new InspectionDto
                             {
-                                var columnName = Reader.GetName(i);
-                                var columnValue = Reader.GetValue(i);
+                                Name = reader["Name"].ToString(), 
+                                Condition = Convert.ToInt16(reader["Condition"]),
+                                Recommendation = reader["Recommendation"].ToString()
+                            };
 
-                                if (!report.ContainsKey(columnName))
-                                {
-                                    report.Add(columnName, Convert.ToInt32(columnValue));
-                                }
-                            }
+                            inspections.Add(inspection);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetCarInspectionBatch));
+                return null;
             }
-
-            return IsFound;
-        }
-
-        public static bool GetSingleInspectionResultByID(string procedure, int ID, ref short? condition, ref string recommendation)
-        {
-            bool IsFound = false;
-
-            try
-            {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand(procedure, Connection))
-                {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Connection.Open();
-                    Command.Parameters.AddWithValue("@ID", ID);
-
-                    using (SqlDataReader Reader = Command.ExecuteReader())
-                    {
-                        if (Reader.Read())
-                        {
-                            IsFound = true;
-                            condition = Convert.ToInt16(Reader["Condition"]);
-                            recommendation = Reader["Recommendation"].ToString();
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
-            }
-
-            return IsFound;
-        }
-
-        public static bool GetResumeByCarInspectionID(int? carInspectionID, ref string resume)
-        {
-            bool IsFound = false;
-
-            try
-            {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_GetResumeByCarInspectionID", Connection))
-                {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Connection.Open();
-                    Command.Parameters.AddWithValue("@ID", carInspectionID);
-
-                    SqlParameter outputParam = new SqlParameter("@Resume", SqlDbType.NVarChar, 350)
-                    {
-                        Direction = ParameterDirection.Output
-                    };
-                    Command.Parameters.Add(outputParam);
-
-                    Command.ExecuteNonQuery();
-
-                    if (outputParam.Value != DBNull.Value)
-                    {
-                        resume = outputParam.Value.ToString();
-                        IsFound = true;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
-            }
-
-            return IsFound;
+            return inspections;
         }
     }
 }

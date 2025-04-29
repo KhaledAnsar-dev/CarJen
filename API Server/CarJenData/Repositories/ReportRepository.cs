@@ -1,143 +1,133 @@
 ﻿using CarJenData.DataModels;
+using CarJenShared.Dtos.ReportDtos;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Data;
+using static CarJenShared.Helpers.Logger;
 
 namespace CarJenData.Repositories
 {
     public class ReportRepository
     {
-        public static bool GetReportByID(int? reportID, ref int? carDocumentationID, ref DateTime? releasedDate, ref short? status)
-        {
-            bool isFound = false;
+        //public static bool GetReportByID(int? reportID, ref int? carDocumentationID, ref DateTime? releasedDate, ref short? status)
+        //{
+        //    bool isFound = false;
 
+        //    try
+        //    {
+        //        using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
+        //        {
+        //            using (SqlCommand command = new SqlCommand("SP_GetReportByID", connection))
+        //            {
+        //                command.CommandType = CommandType.StoredProcedure;
+        //                connection.Open();
+        //                command.Parameters.AddWithValue("@ReportID", reportID);
+
+        //                using (SqlDataReader reader = command.ExecuteReader())
+        //                {
+        //                    if (reader.Read())
+        //                    {
+        //                        isFound = true;
+        //                        carDocumentationID = reader["CarDocumentationID"] != DBNull.Value ? Convert.ToInt32(reader["CarDocumentationID"]) : (int?)null;
+        //                        status = Convert.ToInt16(reader["Status"]);
+        //                        releasedDate = Convert.ToDateTime(reader["ReleaseDate"]);
+        //                    }
+        //                }
+        //            }
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        // string methodName = MethodBase.GetCurrentMethod().Name;
+        //        // Log or handle the exception if needed
+        //    }
+
+        //    return isFound;
+        //}
+
+        public static int? AddReport(int carDocumentationID)
+        {
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
+                using (var context = new CarJenDbContext())
                 {
-                    using (SqlCommand command = new SqlCommand("SP_GetReportByID", connection))
+                    var report = new Report
                     {
-                        command.CommandType = CommandType.StoredProcedure;
-                        connection.Open();
-                        command.Parameters.AddWithValue("@ReportID", reportID);
+                        CarDocumentationId = carDocumentationID,
+                        ReleaseDate = DateTime.Now,
+                        Status = 1 // Report should be active
+                    };
 
-                        using (SqlDataReader reader = command.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                isFound = true;
-                                carDocumentationID = reader["CarDocumentationID"] != DBNull.Value ? Convert.ToInt32(reader["CarDocumentationID"]) : (int?)null;
-                                status = Convert.ToInt16(reader["Status"]);
-                                releasedDate = Convert.ToDateTime(reader["ReleaseDate"]);
-                            }
-                        }
-                    }
+                    context.Reports.Add(report);
+                    context.SaveChanges();
+
+                    return report.ReportId;
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // Log or handle the exception if needed
+                LogError(ex, nameof(AddReport));
+                return null;
             }
-
-            return isFound;
         }
-
-        public static int? AddApprovedReport(int carDocumentationID)
-        {
-            int? createdID = null;
-
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-                {
-                    using (SqlCommand command = new SqlCommand("SP_AddApprovedReport", connection))
-                    {
-                        command.CommandType = CommandType.StoredProcedure;
-
-                        command.Parameters.AddWithValue("@CarDocumentationID", carDocumentationID);
-                        command.Parameters.AddWithValue("@ReleasedDate", DateTime.Now);
-                        command.Parameters.AddWithValue("@Status", 1);
-
-                        SqlParameter outputID = new SqlParameter("@ReportID", SqlDbType.Int)
-                        {
-                            Direction = ParameterDirection.Output
-                        };
-                        command.Parameters.Add(outputID);
-
-                        connection.Open();
-                        command.ExecuteNonQuery();
-
-                        createdID = (int)command.Parameters["@ReportID"].Value;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // Log or handle the exception if needed
-            }
-
-            return createdID;
-        }
-
         public static bool UpdateReportStatus(int? reportID, short? status)
         {
-            int rowAffected = 0;
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
+                using (var context = new CarJenDbContext())
                 {
-                    using (SqlCommand command = new SqlCommand("SP_UpdateReportStatus", connection))
-                    {
-                        command.CommandType = CommandType.StoredProcedure;
+                    var report = context.Reports.Find(reportID);
 
-                        command.Parameters.AddWithValue("@ReportID", reportID);
-                        command.Parameters.AddWithValue("@Status", status);
+                    if (report == null)
+                        return false;
 
-                        connection.Open();
-                        rowAffected = command.ExecuteNonQuery();
-                    }
+                    report.Status = (byte)status;
+                    context.SaveChanges();
+
+                    return true;
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // Log or handle the exception if needed
+                LogError(ex, nameof(UpdateReportStatus));
+                return false;
             }
-
-            return rowAffected > 0;
         }
-
-        public static DataTable GetAllApprovedReports()
+        public static List<ReportDto> GetAllReports()
         {
-            DataTable dt = new DataTable();
-
             try
             {
-                using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
+                using (var context = new CarJenDbContext())
                 {
-                    connection.Open();
-                    using (SqlCommand command = new SqlCommand("SP_GetAllApprovedReports", connection))
-                    {
-                        command.CommandType = CommandType.StoredProcedure;
-
-                        using (SqlDataReader reader = command.ExecuteReader())
+                    var reports = context.CarInspections
+                        .Select(ci => new ReportDto
                         {
-                            if (reader.HasRows)
-                                dt.Load(reader);
-                        }
-                    }
+                            FileId = ci.CarInspectionId,
+                            ExpDate = Convert.ToDateTime(ci.ExpDate),
+                            InspectedBy = ci.Team.TeamCode,
+                            SellerId = ci.CarDocumentation.Seller.SellerId,
+                            Brand = ci.CarDocumentation.Car.Trim.Model.Brand.Brand1,
+                            Model = ci.CarDocumentation.Car.Trim.Model.Model1,
+                            Trim = ci.CarDocumentation.Car.Trim.Trim1,
+                            Year = ci.CarDocumentation.Car.Year,
+                            Mileage = ci.CarDocumentation.Car.Mileage,
+                            Status = ci.Status == 0 ? "Pending" :
+                                     ci.Status == 1 ? "Under Inspection" :
+                                     ci.Status == 2 ? "Approved" :
+                                     ci.Status == 3 ? "Completed" :
+                                     ci.Status == 4 ? "Failed" : "Cancelled"
+                        })
+                        .ToList();
+
+                    return reports;
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // Log or handle the exception if needed
+                LogError(ex, nameof(GetAllReports));
+                return null;
             }
-
-            return dt;
         }
     }
 }
