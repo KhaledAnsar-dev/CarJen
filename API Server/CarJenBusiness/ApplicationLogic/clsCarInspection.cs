@@ -1,6 +1,4 @@
 ﻿using CarJenBusiness.ApplicationLogic;
-using CarJenBusiness.Inspections;
-using CarJenBusiness.Interfaces;
 using CarJenData.DataModels;
 using CarJenData.Repositories;
 using CarJenShared.Dtos.CarDocumentationDtos;

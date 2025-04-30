@@ -1,5 +1,4 @@
-﻿using CarJenBusiness.Inspections;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -135,12 +134,7 @@ namespace CarJenBusiness.Helpers
         {
             //clsEventLogger.LogError(Message, MethodName);
         }
-        public static void Serialize(Dictionary<string, clsInspectResult> inspectionsList)
-        {
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            var json = JsonSerializer.Serialize(inspectionsList, options);
-            File.WriteAllText("TechnicalInspections.json", json);
-        }
+        
 
         /// <summary>
         /// Checks for any uncompleted inspections.
@@ -148,33 +142,6 @@ namespace CarJenBusiness.Helpers
         /// <param name="CarInspectionID">Reference parameter to store the found uncompleted inspection ID.</param>
         /// <returns>A dictionary of uncompleted inspections.</returns>
 
-        public static Dictionary<string, clsInspectResult> Deserialize(ref int? carInspectionID)
-        {
-            try
-            {
-                var json = File.ReadAllText("TechnicalInspections.json");
-                var recoveredList = JsonSerializer.Deserialize<Dictionary<string, clsInspectResult>>(json);
-
-                if (recoveredList != null && recoveredList.Count > 0)
-                {
-                    var firstResult = recoveredList.Values.FirstOrDefault();
-                    if (firstResult?.CarInspectionID.HasValue == true)
-                    {
-                        carInspectionID = firstResult.CarInspectionID.Value;
-                    }
-
-                    return recoveredList;
-                }
-
-                carInspectionID = null;
-                return null;
-            }
-            catch
-            {
-                carInspectionID = null;
-                return null;
-            }
-        }
 
     }
 

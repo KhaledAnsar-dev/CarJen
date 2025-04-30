@@ -1,5 +1,4 @@
-﻿using CarJenBusiness.Inspections;
-using CarJenData;
+﻿using CarJenData;
 using System;
 using System.Collections.Generic;
 using System.IO;
