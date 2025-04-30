@@ -4,6 +4,7 @@ using CarJenShared.Dtos.AppointmentDtos;
 using CarJenShared.Dtos.CarDocumentationDtos;
 using CarJenWebApi.Dtos.AppointmentDtos;
 using CarJenWebApi.Dtos.CarDocumentationDtos;
+using Mapster;
 using System.Runtime.CompilerServices;
 
 namespace CarJenWebApi.Mappings.CustomMappings
@@ -33,6 +34,9 @@ namespace CarJenWebApi.Mappings.CustomMappings
                 CarID = appointmentDto.CarDocumentation.Car.CarID
             };
         }
-
+        public static PendingTechInspectionCarResponse ToPendingTechInspectionCarResponse(PendingTechnicalInspectionCarDto pendingDto)
+        {
+            return pendingDto.Adapt<PendingTechInspectionCarResponse>();
+        }
     }
 }

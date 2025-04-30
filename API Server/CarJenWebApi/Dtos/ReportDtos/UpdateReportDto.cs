@@ -6,7 +6,7 @@ namespace CarJenWebApi.Dtos.ReportDtos
     {
         [Required(ErrorMessage = "ReportID is required.")]
         public int ReportID { get; set; }
-        [Required(ErrorMessage = "ReportID is required.")]
+        [Required(ErrorMessage = "Status is required.")]
         public short Status { get; set; }
 
     }

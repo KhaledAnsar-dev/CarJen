@@ -1,6 +1,5 @@
 ﻿using CarJenData.Repositories;
 using CarJenShared.Dtos.AppointmentDtos;
-using CarJenShared.Dtos.CarInspectionDtos;
 using System;
 using System.Collections.Generic;
 using System.Data;

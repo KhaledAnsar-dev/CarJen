@@ -12,8 +12,8 @@ namespace CarJenBusiness.ApplicationLogic
 {
     public class clsReport
     {
-        public int? reportID { get; set; }
-        public int? carDocumentationID { get; set; }
+        public int? ReportID { get; set; }
+        public int? CarDocumentationID { get; set; }
         public enum enStatus
         {
             Active = 1,
@@ -28,12 +28,12 @@ namespace CarJenBusiness.ApplicationLogic
         {
         }
 
-        public bool AddReport(int carDocumentation)
+        public bool AddReport()
         {
-            this.reportID = ReportRepository.AddReport(carDocumentation);
-            return this.reportID != null;
+            this.ReportID = ReportRepository.AddReport((int)this.CarDocumentationID);
+            return this.ReportID != null;
         }
-        public static bool UpdateStatus(int reportID, short status)
+        static public bool UpdateStatus(int reportID, short status)
         {
             return ReportRepository.UpdateReportStatus(reportID, status); ;
         }

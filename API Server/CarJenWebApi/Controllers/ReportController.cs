@@ -1,4 +1,5 @@
-﻿using CarJenWebApi.Dtos.ReportDtos;
+﻿using CarJenBusiness.ApplicationLogic;
+using CarJenWebApi.Dtos.ReportDtos;
 using CarJenWebApi.Dtos.TeamDtos;
 using CarJenWebApi.Mappings.CustomMappings;
 using Microsoft.AspNetCore.Http;
@@ -10,20 +11,46 @@ namespace CarJenWebApi.Controllers
     [ApiController]
     public class ReportController : ControllerBase
     {
-        [HttpPost("AddPre", Name = "AddPreApprovedReport")]
-        [ProducesResponseType(StatusCodes.Status201Created)]
+        [HttpPost("Create", Name = "CreateReport")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public ActionResult<TeamResponseDto> AddPreApprovedReport(CreatePreReportDto preReport)
+        public ActionResult<int> CreateReport(CreateReportDto dto)
         {
-            var team = TeamMapper.ToclsTeam(newTeam);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            if (team.Save())
-            {
-                var response = TeamMapper.ToTeamResponseDto(team.toTeamDto);
-                return CreatedAtRoute("GetTeamByID", new { teamID = team.TeamID }, response);
-            }
+            var report = ReportMapper.ToclsReport(dto);
+            if (report.AddReport())
+                return Ok(report.ReportID);
 
-            return BadRequest("Failed to add the team.");
+            return BadRequest("Failed to create report.");
+        }
+
+        [HttpPut("UpdateStatus", Name = "UpdateReportStatus")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public IActionResult UpdateStatus( UpdateReportDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            if (clsReport.UpdateStatus(dto.ReportID, dto.Status))
+                return Ok("Report status updated successfully.");
+
+            return BadRequest("Failed to update report status.");
+        }
+
+        [HttpGet("All", Name = "GetAllReports")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public ActionResult<List<ReportResponseDto>> GetAllReports()
+        {
+            var reports = clsReport.GetAllReports();
+
+            if (reports == null)
+                return Ok(new List<ReportResponseDto>());
+
+            var response = reports.Select(ReportMapper.ToReportResponseDto).ToList();
+            return Ok(response);
         }
     }
 }

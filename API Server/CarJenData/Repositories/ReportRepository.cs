@@ -10,41 +10,6 @@ namespace CarJenData.Repositories
 {
     public class ReportRepository
     {
-        //public static bool GetReportByID(int? reportID, ref int? carDocumentationID, ref DateTime? releasedDate, ref short? status)
-        //{
-        //    bool isFound = false;
-
-        //    try
-        //    {
-        //        using (SqlConnection connection = new SqlConnection(clsDataSettings.ConnectionString))
-        //        {
-        //            using (SqlCommand command = new SqlCommand("SP_GetReportByID", connection))
-        //            {
-        //                command.CommandType = CommandType.StoredProcedure;
-        //                connection.Open();
-        //                command.Parameters.AddWithValue("@ReportID", reportID);
-
-        //                using (SqlDataReader reader = command.ExecuteReader())
-        //                {
-        //                    if (reader.Read())
-        //                    {
-        //                        isFound = true;
-        //                        carDocumentationID = reader["CarDocumentationID"] != DBNull.Value ? Convert.ToInt32(reader["CarDocumentationID"]) : (int?)null;
-        //                        status = Convert.ToInt16(reader["Status"]);
-        //                        releasedDate = Convert.ToDateTime(reader["ReleaseDate"]);
-        //                    }
-        //                }
-        //            }
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        // string methodName = MethodBase.GetCurrentMethod().Name;
-        //        // Log or handle the exception if needed
-        //    }
-
-        //    return isFound;
-        //}
 
         public static int? AddReport(int carDocumentationID)
         {

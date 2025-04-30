@@ -9,64 +9,56 @@ namespace CarJenData.Repositories
 {
     public class CarInspectionRepository
     {
-        public static int? CreateInitialCarInspection(int? CarDocumentationID, short? Status)
+        public static int? CreateInitialCarInspection(int? carDocumentationID, short? status)
         {
-            int? CreatedID = null;
+            int? createdID = null;
 
             try
             {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_AddCarInspection", Connection))
+                using (var context = new CarJenDbContext())
                 {
-                    Command.CommandType = CommandType.StoredProcedure;
-
-                    Command.Parameters.AddWithValue("@CarDocumentationID", CarDocumentationID);
-                    Command.Parameters.AddWithValue("@Status", Status);
-
-                    SqlParameter OutputID = new SqlParameter("@CarInspectionID", SqlDbType.Int)
+                    var inspection = new CarInspection
                     {
-                        Direction = ParameterDirection.Output
+                        CarDocumentationId = (int)carDocumentationID,
+                        Status = (byte)status
                     };
-                    Command.Parameters.Add(OutputID);
 
-                    Connection.Open();
-                    Command.ExecuteNonQuery();
-                    CreatedID = (int)Command.Parameters["@CarInspectionID"].Value;
+                    context.CarInspections.Add(inspection);
+                    context.SaveChanges();
+
+                    createdID = inspection.CarInspectionId;
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(CreateInitialCarInspection));
+                return null;
             }
 
-            return CreatedID;
+            return createdID;
         }
-        public static bool UpdateCarInspectionStatus(int? CarInspectionID, short? Status)
+        public static bool UpdateCarInspectionStatus(int? carInspectionID, short? status)
         {
-            int RowAffected = 0;
-
             try
             {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_UpdateCarInspectionStatus", Connection))
+                using (var context = new CarJenDbContext())
                 {
-                    Command.CommandType = CommandType.StoredProcedure;
+                    var inspection = context.CarInspections.Find(carInspectionID);
+                    if (inspection == null)
+                        return false;
 
-                    Command.Parameters.AddWithValue("@CarInspectionID", CarInspectionID);
-                    Command.Parameters.AddWithValue("@Status", Status);
+                    inspection.Status = (byte)status;
+                    context.SaveChanges();
 
-                    Connection.Open();
-                    RowAffected = Command.ExecuteNonQuery();
+                    return true;
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(UpdateCarInspectionStatus));
             }
 
-            return RowAffected > 0;
+            return false;
         }
         public static bool AddCarInspectionBatch(DataTable report, string resume, int carInspectionID)
         {
@@ -90,8 +82,7 @@ namespace CarJenData.Repositories
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(AddCarInspectionBatch));
             }
 
             return isSaved;

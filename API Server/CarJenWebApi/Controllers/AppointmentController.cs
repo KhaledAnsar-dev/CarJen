@@ -1,4 +1,5 @@
-﻿using CarJenBusiness.ApplicationLogic;
+﻿using CarJenBusiness;
+using CarJenBusiness.ApplicationLogic;
 using CarJenData.Repositories;
 using CarJenWebApi.Dtos.AppointmentDtos;
 using CarJenWebApi.Mappings.CustomMappings;
@@ -135,6 +136,21 @@ namespace CarJenWebApi.Controllers
                 return Ok("Appointment deleted successfully.");
 
             return BadRequest("Failed to delete appointment.");
+        }
+
+
+        [HttpGet("ReadyForTechnicalInspection", Name = "GetCarsReadyForTechnicalInspection")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public ActionResult<List<PendingTechInspectionCarResponse>> GetCarsReadyForTechnicalInspection()
+        {
+            var cars = clsAppointment.GetCarsReadyForTechnicalInspection();
+
+            if (cars == null)
+                return NotFound("Failed to retrieve data.");
+
+            var response = cars.Select(AppointmentMapper.ToPendingTechInspectionCarResponse).ToList();
+            return Ok(response);
         }
     }
 }

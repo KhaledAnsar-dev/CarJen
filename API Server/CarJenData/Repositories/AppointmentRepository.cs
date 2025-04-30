@@ -2,10 +2,9 @@
 using CarJenShared.Dtos.AppointmentDtos;
 using CarJenShared.Dtos.CarDocumentationDtos;
 using CarJenShared.Dtos.CarDtos;
-using CarJenShared.Dtos.CarInspectionDtos;
 using CarJenShared.Dtos.PersonDtos;
 using CarJenShared.Dtos.SellerDtos;
-using Microsoft.Data.SqlClient; 
+using Microsoft.Data.SqlClient;
 using System;
 using System.Data;
 using static CarJenShared.Helpers.Logger;
@@ -301,8 +300,6 @@ namespace CarJenData.Repositories
                 return null;
             }
         }
-
-
     }
 }
 
