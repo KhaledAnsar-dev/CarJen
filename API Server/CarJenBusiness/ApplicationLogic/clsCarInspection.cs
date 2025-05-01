@@ -66,6 +66,20 @@ namespace CarJenBusiness
         {
             return CarInspectionRepository.GetCarInspectionBatch(CarInspectionID);
         }
+        static public InspectionBatchDto GetFullCarInspectionBatch(int? CarInspectionID)
+        {
+            var fullBatch = new InspectionBatchDto();
+
+            fullBatch.CarInspectionID = CarInspectionID;
+            fullBatch.Resume = FindResumeByCarInspectionID(CarInspectionID);
+            fullBatch.Inspections = GetCarInspectionBatch(CarInspectionID);
+
+            return fullBatch;
+        }
+        static public string FindResumeByCarInspectionID(int? carInspectionID)
+        {
+            return CarInspectionRepository.GetResumeByCarInspectionID(carInspectionID);
+        }
         public static bool UpdateStatus(int CarInspectionID, short Status)
         {
             return CarInspectionRepository.UpdateCarInspectionStatus(CarInspectionID, Status); ;

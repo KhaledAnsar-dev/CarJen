@@ -117,12 +117,12 @@ namespace CarJenWebApi.Controllers
             }
         }
 
-
+        // From body removed for updatedUser (for delete)
         [HttpPut("{userID}", Name = "UpdateUser")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<UserResponseDto> UpdateUser(int userID, [FromBody] UpdateUserDto updatedUser)
+        public ActionResult<UserResponseDto> UpdateUser(int userID, UpdateUserDto updatedUser)
         {
             // Get the current User
             var currentUser = clsUser.Find(userID);

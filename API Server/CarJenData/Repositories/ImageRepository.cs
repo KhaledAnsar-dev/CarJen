@@ -1,81 +1,37 @@
 ﻿using CarJenData.DataModels;
+using CarJenShared.Dtos.ImageDtos;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Data;
+using static CarJenShared.Helpers.Logger;
 
 namespace CarJenData.Repositories
 {
     public class ImageRepository
     {
-        public static bool GetImageByCollectionIDAndView(int? imageCollectionID, short? viewType, ref int? imageID, ref string imagePath)
+        public static ImageDto? GetImageByCollectionIDAndView(int? imageCollectionID, short? viewType)
         {
-            bool IsFound = false;
-
             try
             {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_GetImageByCollectionIDAndView", Connection))
+                using (var context = new CarJenDbContext())
                 {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Command.Parameters.AddWithValue("@imageCollectionID", imageCollectionID);
-                    Command.Parameters.AddWithValue("@viewType", viewType);
-
-                    Connection.Open();
-
-                    using (SqlDataReader Reader = Command.ExecuteReader())
-                    {
-                        if (Reader.Read())
+                    return context.Images
+                        .Where(img => img.ImageCollectionId == imageCollectionID && img.ViewType == viewType)
+                        .Select(img => new ImageDto
                         {
-                            IsFound = true;
-                            imageID = Convert.ToInt32(Reader["ImageID"]);
-                            imagePath = Reader["ImagePath"].ToString();
-                        }
-                    }
+                            ImageID = img.ImageId,
+                            ImagePath = img.ImagePath,
+                            ViewType = img.ViewType
+                        })
+                        .FirstOrDefault();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetImageByCollectionIDAndView));
+                return null;
             }
-
-            return IsFound;
-        }
-
-        public static int? AddImage(int? imageCollectionID, string imagePath, short? viewType)
-        {
-            int? CreatedID = null;
-
-            try
-            {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_AddImage", Connection))
-                {
-                    Command.CommandType = CommandType.StoredProcedure;
-
-                    Command.Parameters.AddWithValue("@imageCollectionID", imageCollectionID);
-                    Command.Parameters.AddWithValue("@imagePath", imagePath);
-                    Command.Parameters.AddWithValue("@viewType", viewType);
-
-                    SqlParameter OutputID = new SqlParameter("@imageID", SqlDbType.Int)
-                    {
-                        Direction = ParameterDirection.Output
-                    };
-                    Command.Parameters.Add(OutputID);
-
-                    Connection.Open();
-                    Command.ExecuteNonQuery();
-
-                    CreatedID = (int)Command.Parameters["@imageID"].Value;
-                }
-            }
-            catch (Exception ex)
-            {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
-            }
-
-            return CreatedID;
         }
     }
+
 }

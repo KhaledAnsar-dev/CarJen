@@ -1,7 +1,10 @@
-﻿using CarJenData.Repositories;
+﻿using CarJenData.DataModels;
+using CarJenData.Repositories;
+using CarJenShared.Dtos.ImageCollectionDto;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Security;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -9,98 +12,65 @@ namespace CarJenBusiness.ApplicationLogic
 {
     public class clsImageCollection
     {
-        public int? imageCollectionID { get; set; }
-        public int? carID { get; set; }
-        public bool? status { get; set; }
-        public DateTime? createdDate { get; set; }
-        public string frontView { get; set; }
-        public string rearView { get; set; }
-        public string sideView { get; set; }
-        public string interiorView { get; set; }
-        private clsImageCollection(int? imageCollectionID, int? carID, bool? status, DateTime? createdDate)
-        {
-            this.imageCollectionID = imageCollectionID;
-            this.carID = carID;
-            this.status = status;
-            this.createdDate = createdDate;
-            frontView = clsImage.Find(imageCollectionID, (short)clsImage.enViewType.FrontView).imagePath;
-            rearView = clsImage.Find(imageCollectionID, (short)clsImage.enViewType.RearView).imagePath;
-            sideView = clsImage.Find(imageCollectionID, (short)clsImage.enViewType.SideView).imagePath;
-            interiorView = clsImage.Find(imageCollectionID, (short)clsImage.enViewType.InteriorView).imagePath;
+        enum enMode { Add = 1, Update = 2 }
+        private enMode mode;
 
-            mode = enMode.Update;
+        public int? ImageCollectionID { get; set; }
+        public int? CarID { get; set; }
+        public clsImage FrontView { get; set; }
+        public clsImage RearView { get; set; }
+        public clsImage SideView { get; set; }
+        public clsImage InteriorView { get; set; }
+        public ImagesDto ToImagesDto
+        {
+            get
+            {
+                return new ImagesDto
+                {
+                    ImageCollectionID = ImageCollectionID ?? 0,
+                    CarID = CarID ?? 0,
+                    FrontView = this.FrontView.ImagePath,
+                    RearView = this.RearView.ImagePath,
+                    SideView = this.SideView.ImagePath,
+                    InteriorView = this.InteriorView.ImagePath,
+                };
+            }
         }
         public clsImageCollection()
         {
-            this.imageCollectionID = null;
-            this.carID = null;
-            this.status = null;
-            this.createdDate = null;
-            this.frontView = string.Empty;
-            this.rearView = string.Empty;
-            this.sideView = string.Empty;
-            this.interiorView = string.Empty;
+            this.ImageCollectionID = null;
+            this.CarID = null;
             mode = enMode.Add;
         }
-
-        enum enMode { Add = 1, Update = 2 }
-        enMode mode;
-
+        
         private bool _Add()
         {
-            this.imageCollectionID = ImageCollectionRepository.AddImageCollection(carID, frontView, rearView, sideView, interiorView);
-            return this.imageCollectionID != null;
+            this.ImageCollectionID = ImageCollectionRepository.AddImageCollection(this.ToImagesDto);
+            return this.ImageCollectionID != null;
         }
         private bool _Update()
         {
-            return ImageCollectionRepository.UpdateImageCollection(imageCollectionID, frontView, rearView, sideView, interiorView);
+            return ImageCollectionRepository.UpdateImageCollection(ToImagesDto);
         }
         public bool Save()
         {
-            switch (mode)
-            {
-                case enMode.Add:
-                    if (_Add())
-                    {
-                        mode = enMode.Update;
-                        return true;
-                    }
-                    else
-                    {
-                        return false;
-                    }
-
-                case enMode.Update:
-
-                    return _Update();
-
-            }
-            return false;
+            bool success = mode == enMode.Add ? _Add() : _Update();
+            if (success && mode == enMode.Add) mode = enMode.Update;
+            return success;
         }
-
-        static public clsImageCollection Find(int? imageCollection, bool? status)
+        static public clsImageCollection? Find(int? imageCollectionID)
         {
-            int? carID = null; DateTime? createdDate = null;
-            if (ImageCollectionRepository.GetImageCollectionByID(imageCollection, status, ref carID, ref createdDate))
+            return new clsImageCollection
             {
-                return new clsImageCollection(imageCollection, carID, status, createdDate);
-            }
-            else
-                return null;
+                ImageCollectionID = imageCollectionID,
+                CarID = ImageCollectionRepository.GetAssociatedCarID(imageCollectionID),
+                FrontView = clsImage.Find(imageCollectionID, (short)clsImage.enViewType.FrontView),
+                RearView = clsImage.Find(imageCollectionID, (short)clsImage.enViewType.RearView),
+                SideView = clsImage.Find(imageCollectionID, (short)clsImage.enViewType.SideView),
+                InteriorView = clsImage.Find(imageCollectionID, (short)clsImage.enViewType.InteriorView),
 
+                mode = enMode.Update
+            };
         }
-        static public clsImageCollection Find(int? CarID)
-        {
-            int? imageCollection = null; bool? status = null; DateTime? createdDate = null;
-            if (ImageCollectionRepository.GetImageCollectionByCarID(CarID, ref imageCollection, ref status, ref createdDate))
-            {
-                return new clsImageCollection(imageCollection, CarID, status, createdDate);
-            }
-            else
-                return null;
-
-        }
-
     }
-
 }

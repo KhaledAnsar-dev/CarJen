@@ -4,7 +4,6 @@ namespace CarJenWebApi.Dtos.TeamDtos
 {
     public class TeamResponseDto
     {
-        [Required(ErrorMessage = "")]
         public int TeamId { get; set; }
 
         public string TeamCode { get; set; } = null!;

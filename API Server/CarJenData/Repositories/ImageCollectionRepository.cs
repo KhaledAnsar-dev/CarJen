@@ -1,122 +1,32 @@
 ﻿using CarJenData.DataModels;
+using CarJenShared.Dtos.ImageCollectionDto;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Data;
-
+using static CarJenShared.Helpers.Logger;
 namespace CarJenData.Repositories
 {
     public class ImageCollectionRepository
     {
-        public static bool GetImageCollectionByID(int? imageCollectionID, bool? status, ref int? carID, ref DateTime? createdDate)
+        public static int? GetAssociatedCarID(int? imageCollectionID)
         {
-            bool IsFound = false;
-
             try
             {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_GetImageCollectionByID", Connection))
+                using (var context = new CarJenDbContext())
                 {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Command.Parameters.AddWithValue("@ImageCollectionID", imageCollectionID);
-
-                    Connection.Open();
-
-                    using (SqlDataReader Reader = Command.ExecuteReader())
-                    {
-                        if (Reader.Read())
-                        {
-                            IsFound = true;
-                            carID = Convert.ToInt32(Reader["carID"]);
-                            status = Convert.ToBoolean(Reader["status"]);
-                            createdDate = Convert.ToDateTime(Reader["createdDate"]);
-                        }
-                    }
+                    return context.ImageCollections
+                        .Where(ic => ic.ImageCollectionId == imageCollectionID)
+                        .Select(ic => ic.CarId)
+                        .FirstOrDefault();
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(GetAssociatedCarID));
+                return null;
             }
-
-            return IsFound;
         }
-
-        public static bool GetImageCollectionByCarID(int? carID, ref int? imageCollectionID, ref bool? status, ref DateTime? createdDate)
-        {
-            bool IsFound = false;
-
-            try
-            {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_GetImageCollectionByCarID", Connection))
-                {
-                    Command.CommandType = CommandType.StoredProcedure;
-                    Command.Parameters.AddWithValue("@CarID", carID);
-
-                    Connection.Open();
-
-                    using (SqlDataReader Reader = Command.ExecuteReader())
-                    {
-                        if (Reader.Read())
-                        {
-                            IsFound = true;
-                            imageCollectionID = Convert.ToInt32(Reader["imageCollectionID"]);
-                            status = Convert.ToBoolean(Reader["status"]);
-                            createdDate = Convert.ToDateTime(Reader["createdDate"]);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
-            }
-
-            return IsFound;
-        }
-
-        public static int? SaveImageCollection(int? carID, string frontImage, string rearImage, string sideImage, string interiorImage)
-        {
-            int? CreatedID = null;
-
-            try
-            {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_AddImageCollection", Connection))
-                {
-                    Command.CommandType = CommandType.StoredProcedure;
-
-                    Command.Parameters.AddWithValue("@carID", carID);
-                    Command.Parameters.AddWithValue("@createdDate", DateTime.Now);
-                    Command.Parameters.AddWithValue("@frontImage", frontImage);
-                    Command.Parameters.AddWithValue("@rearImage", rearImage);
-                    Command.Parameters.AddWithValue("@sideImage", sideImage);
-                    Command.Parameters.AddWithValue("@interiorImage", interiorImage);
-
-                    SqlParameter OutputID = new SqlParameter("@imageCollectionID", SqlDbType.Int)
-                    {
-                        Direction = ParameterDirection.Output
-                    };
-                    Command.Parameters.Add(OutputID);
-
-                    Connection.Open();
-                    Command.ExecuteNonQuery();
-
-                    CreatedID = (int)Command.Parameters["@imageCollectionID"].Value;
-                }
-            }
-            catch (Exception ex)
-            {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
-            }
-
-            return CreatedID;
-        }
-
-        public static int? AddImageCollection(int? carID, string frontImage, string rearImage, string sideImage, string interiorImage)
+        public static int? AddImageCollection(ImagesDto images)
         {
             int? CreatedID = null;
 
@@ -127,12 +37,12 @@ namespace CarJenData.Repositories
                 {
                     Command.CommandType = CommandType.StoredProcedure;
 
-                    Command.Parameters.AddWithValue("@carID", carID);
+                    Command.Parameters.AddWithValue("@carID", images.CarID);
                     Command.Parameters.AddWithValue("@createdDate", DateTime.Now);
-                    Command.Parameters.AddWithValue("@frontImage", frontImage);
-                    Command.Parameters.AddWithValue("@rearImage", rearImage);
-                    Command.Parameters.AddWithValue("@sideImage", sideImage);
-                    Command.Parameters.AddWithValue("@interiorImage", interiorImage);
+                    Command.Parameters.AddWithValue("@frontImage", images.FrontView);
+                    Command.Parameters.AddWithValue("@rearImage", images.RearView);
+                    Command.Parameters.AddWithValue("@sideImage", images.SideView);
+                    Command.Parameters.AddWithValue("@interiorImage", images.InteriorView);
 
                     SqlParameter OutputID = new SqlParameter("@imageCollectionID", SqlDbType.Int)
                     {
@@ -148,41 +58,44 @@ namespace CarJenData.Repositories
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(AddImageCollection));
+                return null;
             }
 
             return CreatedID;
         }
-
-        public static bool UpdateImageCollection(int? imageCollectionID, string frontImage, string rearImage, string sideImage, string interiorImage)
+        public static bool UpdateImageCollection(ImagesDto dto)
         {
-            int RowAffected = 0;
-
             try
             {
-                using (SqlConnection Connection = new SqlConnection(clsDataSettings.ConnectionString))
-                using (SqlCommand Command = new SqlCommand("SP_UpdateImgCollection", Connection))
+                using (var context = new CarJenDbContext())
                 {
-                    Command.CommandType = CommandType.StoredProcedure;
+                    var images = context.Images
+                        .Where(i => i.ImageCollectionId == dto.ImageCollectionID).ToList();
 
-                    Command.Parameters.AddWithValue("@imageCollectionID", imageCollectionID);
-                    Command.Parameters.AddWithValue("@frontImage", frontImage);
-                    Command.Parameters.AddWithValue("@rearImage", rearImage);
-                    Command.Parameters.AddWithValue("@sideImage", sideImage);
-                    Command.Parameters.AddWithValue("@interiorImage", interiorImage);
+                    if (images == null)
+                        return false;
 
-                    Connection.Open();
-                    RowAffected = Command.ExecuteNonQuery();
+                    foreach(var image in images)
+                    {
+                        switch (image.ViewType)
+                        {
+                            case 1: image.ImagePath = dto.FrontView; break;
+                            case 2: image.ImagePath = dto.RearView; break;
+                            case 3: image.ImagePath = dto.SideView; break;
+                            case 4: image.ImagePath = dto.InteriorView; break;
+                        }
+                    }
+
+                    context.SaveChanges();
+                    return true;
                 }
             }
             catch (Exception ex)
             {
-                // string methodName = MethodBase.GetCurrentMethod().Name;
-                // clsEventLogger.LogError(ex.Message, methodName);
+                LogError(ex, nameof(UpdateImageCollection));
+                return false;
             }
-
-            return RowAffected > 0;
         }
     }
 }

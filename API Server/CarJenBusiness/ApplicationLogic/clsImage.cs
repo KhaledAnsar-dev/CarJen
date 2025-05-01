@@ -1,4 +1,5 @@
 ﻿using CarJenData.Repositories;
+using CarJenShared.Dtos.ImageDtos;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,10 +10,9 @@ namespace CarJenBusiness.ApplicationLogic
 {
     public class clsImage
     {
-        public int? imageID { get; set; }
-        public int? imageCollectionID { get; set; }
-        public string imagePath { get; set; }
-        public short? viewType { get; set; }
+        public int? ImageID { get; set; }
+        public string ImagePath { get; set; }
+        public short? ViewType { get; set; }
 
         public enum enViewType
         {
@@ -22,41 +22,26 @@ namespace CarJenBusiness.ApplicationLogic
             InteriorView = 4
         }
 
-        private clsImage(int? imageID, int? imageCollection, string imagePath, short? viewType)
+        private clsImage(ImageDto imageDto)
         {
-            this.imageID = imageID;
-            this.imageCollectionID = imageCollection;
-            this.imagePath = imagePath;
-            this.viewType = viewType;
+            this.ImageID = imageDto.ImageID;
+            this.ImagePath = imageDto.ImagePath;
+            this.ViewType = imageDto.ViewType;
         }
-        public clsImage()
+        public clsImage(string image , enViewType view)
         {
-            this.imageID = null;
-            this.imageCollectionID = null;
-            this.imagePath = "";
-            this.viewType = null;
+            ImagePath = image;
+            ViewType = (short)view;
         }
-
-
-        public bool Add()
+        static public clsImage? Find(int? imageCollectionID, short viewType)
         {
-            this.imageID = ImageRepository.AddImage(imageCollectionID, imagePath, viewType);
-            return this.imageID != null;
-        }
+            var imageDto = ImageRepository.GetImageByCollectionIDAndView(imageCollectionID, viewType);
 
-        static public clsImage Find(int? imageCollectionID, short viewType)
-        {
-            int? imageID = null;
-            string imagePath = "";
-            if (ImageRepository.GetImageByCollectionIDAndView(imageCollectionID, viewType, ref imageID, ref imagePath))
-            {
-                return new clsImage(imageID, imageCollectionID, imagePath, viewType);
-            }
+            if (imageDto != null)
+                return new clsImage(imageDto);
             else
                 return null;
-
         }
-
     }
 
 }

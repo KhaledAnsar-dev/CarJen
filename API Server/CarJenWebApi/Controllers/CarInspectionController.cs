@@ -77,5 +77,22 @@ namespace CarJenWebApi.Controllers
 
             return BadRequest("Failed to cancel inspection.");
         }
+
+        [HttpGet("FullBatch/{carInspectionID:int}", Name = "GetFullInspectionBatch")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public ActionResult<InspectionBatchResponseDto> GetFullInspectionBatch(int carInspectionID)
+        {
+            var batch = clsCarInspection.GetFullCarInspectionBatch(carInspectionID);
+
+            if (batch == null || batch.Inspections.Count == 0)
+                return NotFound("No inspections found for this car inspection ID.");
+
+            // Response used by client app 
+            var response = CarInspectionMapper.ToInspectionBatchResponseDto(batch);
+
+            return Ok(response);
+        }
+
     }
 }

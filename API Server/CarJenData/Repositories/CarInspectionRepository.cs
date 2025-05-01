@@ -4,6 +4,7 @@ using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Reflection;
 using static CarJenShared.Helpers.Logger;
 namespace CarJenData.Repositories
 {
@@ -99,7 +100,7 @@ namespace CarJenData.Repositories
                 {
                     Command.CommandType = CommandType.StoredProcedure;
                     Connection.Open();
-
+                    Command.Parameters.AddWithValue("@CarInspectionID", CarInspectionID);
                     using (SqlDataReader reader = Command.ExecuteReader())
                     {
                         while (reader.Read())
@@ -123,5 +124,24 @@ namespace CarJenData.Repositories
             }
             return inspections;
         }
+        static public string GetResumeByCarInspectionID(int? carInspectionID)
+        {
+            try
+            {
+                using (var context = new CarJenDbContext())
+                {
+                    var resumeRecord = context.Resumes
+                        .FirstOrDefault(r => r.CarInspectionId == carInspectionID);
+
+                    return resumeRecord?.Resume1;
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError(ex, nameof(GetResumeByCarInspectionID));
+                return null;
+            }
+        }
+
     }
 }
