@@ -1,4 +1,5 @@
 ﻿using CarJenBusiness.ApplicationLogic;
+using CarJenShared.Dtos.ReportDtos;
 using CarJenWebApi.Dtos.ReportDtos;
 using CarJenWebApi.Dtos.TeamDtos;
 using CarJenWebApi.Mappings.CustomMappings;
@@ -42,15 +43,29 @@ namespace CarJenWebApi.Controllers
 
         [HttpGet("All", Name = "GetAllReports")]
         [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult<List<ReportResponseDto>> GetAllReports()
         {
             var reports = clsReport.GetAllReports();
 
             if (reports == null)
-                return Ok(new List<ReportResponseDto>());
+                return NotFound("No generated reports found");
 
             var response = reports.Select(ReportMapper.ToReportResponseDto).ToList();
             return Ok(response);
+        }
+
+        [HttpGet("AllApproved", Name = "GetAllApprovedReports")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public ActionResult<List<FinalReportDto>> GetAllApprovedReports()
+        {
+            var reports = clsReport.GetAllApprovedReports();
+
+            if (reports == null)
+                return NotFound("No published reports found");
+
+            return Ok(reports);
         }
     }
 }

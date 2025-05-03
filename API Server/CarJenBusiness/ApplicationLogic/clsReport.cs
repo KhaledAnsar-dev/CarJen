@@ -41,7 +41,10 @@ namespace CarJenBusiness.ApplicationLogic
         {
             return ReportRepository.GetAllReports();
         }
-
+        static public List<FinalReportDto> GetAllApprovedReports()
+        {
+            return ReportRepository.GetAllApprovedReports();
+        }
     }
 
 }

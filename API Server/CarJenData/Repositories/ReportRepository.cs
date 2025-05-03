@@ -94,5 +94,41 @@ namespace CarJenData.Repositories
                 return null;
             }
         }
+        public static List<FinalReportDto> GetAllApprovedReports()
+        {
+            try
+            {
+                using (var context = new CarJenDbContext())
+                {
+                    var reports = context.Reports
+                        .Select(r => new FinalReportDto
+                        {
+                            ReportId = r.ReportId,
+                            FileId = r.CarDocumentation.CarInspections
+                                        .FirstOrDefault().CarInspectionId, // Assuming one inspection per documentation
+                            Released = r.ReleaseDate.Date,
+                            SellerId = r.CarDocumentation.Seller.SellerId,
+                            Brand = r.CarDocumentation.Car.Trim.Model.Brand.Brand1.Trim(),
+                            Model = r.CarDocumentation.Car.Trim.Model.Model1.Trim(),
+                            Trim = r.CarDocumentation.Car.Trim.Trim1.Trim(),
+                            Year = r.CarDocumentation.Car.Year,
+                            Mileage = r.CarDocumentation.Car.Mileage,
+                            Status = r.Status == 1 ? "Active" :
+                                     r.Status == 2 ? "Disabled by Seller" :
+                                     r.Status == 3 ? "Disabled by Team" :
+                                     r.Status == 4 ? "Sold" : "Canceled"
+                        })
+                        .ToList();
+
+                    return reports;
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError(ex, nameof(GetAllApprovedReports));
+                return null;
+            }
+        }
+
     }
 }
