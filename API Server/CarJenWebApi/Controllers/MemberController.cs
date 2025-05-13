@@ -58,6 +58,9 @@ namespace CarJenWebApi.Controllers
 
             if (member.AddMember())
             {
+                member = clsTeamMember.Find(member.TeamMemberID);
+                if (member == null)
+                    return BadRequest("Failed to retrieve the newly added team member.");
 
                 MemberResponseDto response = MemberMapper.ToMemberResponseDto(member.ToMemberDto);
 

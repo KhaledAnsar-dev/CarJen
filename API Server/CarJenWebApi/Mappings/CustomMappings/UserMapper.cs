@@ -50,7 +50,7 @@ namespace CarJenWebApi.Mappings.CustomMappings
                 UserID = (int)user.UserId,
                 NationalNumber = user.NationalNumber,
                 EvaluationScore = (short)user.EvaluationScore,
-                CreatedByUser = clsUser.Find(user.CreatedByUserId).FullName,
+                CreatedByUser = clsUser.Find(user.CreatedByUserId)?.FullName ?? "",
                 FirstName = user.Person.FirstName,
                 MiddleName = user.Person.MiddleName,
                 LastName = user.Person.LastName,

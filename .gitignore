@@ -1,32 +1,121 @@
-# Visual Studio
-.vs/
-*.user
-*.suo
+## Build results
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+*.log
 
-# Build results
-bin/
-obj/
+## Rider
+.idea/
+
+## User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+## Mono Auto Generated Files
+mono_crash.*
+
+## Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+## VS Code
+.vscode/
+
+## Visual Studio
+.vs/
+*.ncb
+*.aps
+*.cache
+*.ilk
+*.log
+*.lib
+*.sbr
+*.sdf
+*.opensdf
+*.tlog
+*.pdb
+*.ipch
+*.iobj
+*.idb
+*.obj
+*.pch
+*.vsp
+*.vspscc
+*.vssscc
+*.dbmdl
+
+## DotCover
+*.dotCover
+
+## NuGet
+*.nupkg
+*.snupkg
+*.nuspec
+*.psmdcp
+.packages/
+packages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# Build outputs
 *.dll
 *.exe
 
-# Debug/Release folders
-[Dd]ebug/
-[Rr]elease/
+## Publish
+publish/
+*.publish.xml
 
-# Logs
-*.log
+# Azure Web Apps
+app.publish/
 
-# NuGet
-*.nupkg
-packages/
+## Temporary files
+*.tmp
+*.bak
+*.old
+*.orig
 
-# Other
-*.cache
-*.ide
-*.sdf
-*.dbmdl
-*.vscode/
+# Resharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
 
-# OS generated files
-.DS_Store
+# JetBrains Rider
+.idea/
+
+# Windows Installer files
+*.msi
+*.msm
+*.msp
+
+# Entity Framework
+*.designer.cs
+
+# SQL Server files
+*.mdf
+*.ldf
+
+# Dotnet watch
+**/tmp/
+
+# Local history for IDEs
+.localhistory/
+
+# Windows specific
+Desktop.ini
+$RECYCLE.BIN/
+
+# Other IDEs
+*.swp
+*.swo
+
+# Git directory info
+.git/
+
 Thumbs.db

@@ -37,7 +37,6 @@ namespace CarJenWebApi.Dtos.UserDtos
         public string Phone { get; set; }
 
         [Required(ErrorMessage = "Address is required.")]
-        [StringLength(50)]
         public string Address { get; set; }
 
         public bool IsActive { get; set; }

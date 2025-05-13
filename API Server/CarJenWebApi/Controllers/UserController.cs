@@ -77,7 +77,7 @@ namespace CarJenWebApi.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public ActionResult<UserResponseDto> AddUser(CreateUserDto newUser)
+        public ActionResult<UserResponseDto> AddUser([FromBody] CreateUserDto newUser)
         {
             // Convert to business object , so we can use the save method
             var user = UserMapper.ToclsUser(newUser);

@@ -96,7 +96,7 @@ namespace CarJenData.Repositories
                     personEnrtity.Gender = Convert.ToByte(personDto.Gender);
                     //personEnrtity.DateOfBirth = Convert.ToDateTime(personDto.DateOfBirth);
                     //personEnrtity.Email = personDto.Email;
-                    //personEnrtity.Address = personDto.Address;
+                    //personEnrtity.Address = personDto.Address?? "";
                     personEnrtity.Phone = personDto.Phone;
                     //personEnrtity.JoinDate = Convert.ToDateTime(personDto.JoinDate);
                     //personEnrtity.IsActive = personDto.IsActive;

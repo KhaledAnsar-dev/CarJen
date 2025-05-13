@@ -58,30 +58,6 @@ namespace CarJenBusiness.ApplicationLogic
             ServiceFee = 4
         }
 
-        public static string GetFeeTypeText(enFeeType feeType)
-        {
-            //return _FeeTypeText[feeType];
-
-            switch (feeType)
-            {
-                case enFeeType.InspectionFee:
-                    {
-                        return "Inspection Fee";
-                    }
-                case enFeeType.ReportFee:
-                    {
-                        return "Report Fee";
-                    }
-                case enFeeType.PublishingFee:
-                    {
-                        return "Publish Fee";
-                    }
-                default:
-                    {
-                        return "Service Fee";
-                    }
-            }
-        }
         public static bool Renew(byte mainFeeType, decimal newAmountFee)
         {
             return FeeRepository.RenewFeeFor(mainFeeType, newAmountFee);

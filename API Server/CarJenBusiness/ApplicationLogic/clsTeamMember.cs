@@ -29,7 +29,7 @@ namespace CarJenBusiness.ApplicationLogic
             {
                 return new MemberDto
                 {
-                    TeamMemberId = (int)this.TeamMemberID,
+                    TeamMemberId = this.TeamMemberID ?? 0,
                     JoinDate = Convert.ToDateTime(this.JoinDate),
                     ExitDate = this.ExitDate,
                     Team = this.Team.toTeamDto,
